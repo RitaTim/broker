@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from decorators import is_signal, is_callback
+from decorators import signal, callback
 from types import FunctionType
 
 
@@ -26,8 +26,8 @@ class BaseClass(type):
         """
             Устанавливает список коллбэков класса
         """
-        child_cls.all_callbacks = cls.get_functions_by_decorator_name(
-            'callback', all_functions
+        child_cls.all_callbacks = cls.get_functions_by_attr(
+            'is_callback', all_functions
         )
 
     @classmethod
@@ -35,37 +35,19 @@ class BaseClass(type):
         """
             Устанавливает список сигналов класса
         """
-        child_cls.all_signals = cls.get_functions_by_decorator_name(
-            'signal', all_functions
+        child_cls.all_signals = cls.get_functions_by_attr(
+            'is_signal', all_functions
         )
 
     @classmethod
-    def get_functions_by_decorator_name(cls, func_name, all_functions):
+    def get_functions_by_attr(cls, attr_name, all_functions):
         """
-            Возвращает список функций класса по имени декоратора
+           Возвращает список функций, у которых есть атрибут attr_name
         """
-        result = []
-
-        def get_decorators(func):
-            """
-                Возвращает список декораторов функции
-            """
-            result = []
-            if func.func_closure:
-                for func_closure in func.func_closure:
-                    if isinstance(func_closure.cell_contents, FunctionType):
-                        result.append(func)
-                        result.extend(
-                            get_decorators(func_closure.cell_contents)
-                        )
-            return result
-
-        for f_name, func in all_functions:
-            if func.func_closure:
-                decorators_names = [f.func_name for f in get_decorators(func)]
-                if func_name in decorators_names:
-                    result.append(func)
-        return result
+        return [
+            func for f_name, func in all_functions
+                if hasattr(func, attr_name)
+        ]
 
     def get_all_callbacks(cls):
         """
@@ -86,16 +68,15 @@ class DataBaseSourse(object):
     """
     __metaclass__ = BaseClass
 
-    @is_callback
-    @is_signal(2, 20, 'data_base_sourse')
+    @signal(2, 20, 'data_base_sourse')
     def f1(self):
         print "f1"
 
-    @is_signal()
+    @signal()
     def f2(self):
         print "f2"
 
-    @is_callback
+    @callback
     def f3(self):
         print "f3"
 
@@ -109,11 +90,11 @@ class FileSourse(object):
     """
     __metaclass__ = BaseClass
 
-    @is_signal()
+    @signal()
     def f2_(self):
         print "f2"
 
-    @is_callback
+    @callback
     def f3_(self):
         print "f3"
 

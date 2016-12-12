@@ -1,23 +1,29 @@
 # -*- coding: utf-8 -*-
 
+from functools import wraps
 
-def is_signal(max_retries=1, expire=60, routing_key='default'):
-    print "INIT SIGNAL"
 
+def signal(max_retries=1, expire=60, routing_key='default'):
+    """
+        Декоратор для функции-сигнала
+    """
     def decorator(func):
-        def signal(self, *args, **kwargs):
-            print "CALL SIGNAL"
-            print "max_retries={}, expire={}, routing_key={}"\
-                   .format(max_retries, expire, routing_key)
+        func.is_signal = True
+
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
             func(self, *args, **kwargs)
-        return signal
+        return wrapper
     return decorator
 
 
-def is_callback(func):
-    print "INIT CALLBACK"
+def callback(func):
+    """
+        Декоратор для функции-коллбэка
+    """
+    func.is_callback = True
 
-    def callback(self, *args, **kwargs):
-        print "CALL CALLBACK"
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
         return func(self, *args, **kwargs)
-    return callback
+    return wrapper
