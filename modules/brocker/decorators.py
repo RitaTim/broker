@@ -8,7 +8,7 @@ def signal(*args_signal, **kwargs_signal):
         Декоратор для функции-сигнала
     """
     def decorator(func):
-        @wraps(extend_func(func, 'is_signal'))
+        @wrapped(func, 'is_signal')
         def wrapper(self, *args, **kwargs):
             func(self, *args, **kwargs)
         return wrapper
@@ -19,18 +19,20 @@ def callback(func):
     """
         Декоратор для функции-коллбэка
     """
-    @wraps(extend_func(func, 'is_callback'))
+    @wrapped(func, 'is_callback')
     def wrapper(self, *args, **kwargs):
         return func(self, *args, **kwargs)
     return wrapper
 
 
-def extend_func(func, attr_name, attr_val=True):
+def wrapped(func, attr_name, attr_val=True):
     """
         Устанавливает значение конкретного атрибута функции
             func - функция
             attr_name - имя атрибута
             attr_val - значение атрибута
+        И возвращает стандартную обертку для функции
     """
     setattr(func, attr_name, attr_val)
-    return func
+    return wraps(func)
+
