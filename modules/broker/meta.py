@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from decorators import signal, callback
 from types import FunctionType
 
 
-class BaseClass(type):
+class BaseClassMeta(type):
     """
-        Базовый класс для классов всех типов источников
+        Базовый мета-класс
     """
     all_callbacks = []
     all_signals = []
 
     def __new__(cls, name, bases, attrs):
-        new_cls = super(BaseClass, cls).__new__(cls, name, bases, attrs)
+        new_cls = super(BaseClassMeta, cls).__new__(cls, name, bases, attrs)
 
         callbacks = []
         signals = []
@@ -43,43 +42,3 @@ class BaseClass(type):
             Возвращает список сигналов класса
         """
         return cls.all_signals
-
-
-class DataBaseSourse(object):
-    """
-        Класс, описывающий тип источника "База данных"
-    """
-    __metaclass__ = BaseClass
-
-    @signal(2, 20, 'data_base_sourse')
-    def f1(self):
-        print "f1"
-
-    @signal()
-    def f2(self):
-        print "f2"
-
-    @callback
-    def f3(self):
-        print "f3"
-
-    def f4(self):
-        print "f4"
-
-
-class FileSourse(object):
-    """
-        Класс, описывающий тип источника "Файл"
-    """
-    __metaclass__ = BaseClass
-
-    @signal()
-    def f2_(self):
-        print "f2"
-
-    @callback
-    def f3_(self):
-        print "f3"
-
-    def f4_(self):
-        print "f4"
