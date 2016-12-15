@@ -13,11 +13,6 @@ class BrokerAppConfig(AppConfig):
     verbose_name = u'Анализ параметров брокера'
 
     def ready(self):
-        # Анализируем источники брокера
-        self._analize_sources()
-
-    @classmethod
-    def _analize_sources(cls):
         """
             Находит все источники брокера и
             в соответствии с полученным списком обновляет таблицу бд
@@ -28,7 +23,7 @@ class BrokerAppConfig(AppConfig):
         # Получаем список имен источников модуля
         module_sources = set(
             name for name, source in inspect.getmembers(broker_sources)
-            if hasattr(source, 'is_proxy') and source.is_proxy == False
+            if getattr(source, 'is_proxy', None) == False
         )
 
         # Выбираем источники, которые уже есть в бд
@@ -37,12 +32,11 @@ class BrokerAppConfig(AppConfig):
         )
 
         # Удаляем источники, которых нет в модуле
-        SourceModel.objects.filter(source__in=(db_sources - module_sources))\
-                           .delete()
+        SourceModel.objects.filter(source__in=(db_sources - module_sources)) \
+            .delete()
 
         # Добавляем источники, которых нет в бд
-        new_sources = module_sources - db_sources
-        if new_sources:
-            SourceModel.objects.bulk_create(
-                [SourceModel(source=name_source) for name_source in new_sources]
-            )
+        SourceModel.objects.bulk_create([
+            SourceModel(source=name_source) for name_source
+            in (module_sources - db_sources)
+        ])
