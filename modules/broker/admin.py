@@ -2,14 +2,14 @@
 
 from django.contrib import admin
 
-from models import SourceModel
+from models import Source
 
 
 class SourceModelAdmin(admin.ModelAdmin):
     list_display = ('source',)
 
     class Meta:
-        model = SourceModel
+        model = Source
 
-admin.site.register(SourceModel, SourceModelAdmin)
+admin.site.register(Source, SourceModelAdmin)
 

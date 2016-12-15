@@ -35,14 +35,14 @@ class Source(BaseClass):
     @staticmethod
     def set_source_model(self, source_model):
         """
-            Связывает экземпляр класса с объектом модели SourceModel
+            Связывает экземпляр класса с объектом модели Source
         """
         self.source_model = source_model
 
     @staticmethod
     def create_source_model(self):
         """
-            Создает объект в таблице SourceModel
+            Создает объект в таблице Source
         """
         # создаем source model
         # устанавливаем атрибут self.set_source_model(source_model)

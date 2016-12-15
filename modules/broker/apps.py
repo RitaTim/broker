@@ -17,7 +17,7 @@ class BrokerAppConfig(AppConfig):
             Находит все источники брокера и
             в соответствии с полученным списком обновляет таблицу бд
         """
-        from models import SourceModel
+        from models import Source
         from broker import sources as broker_sources
 
         # Получаем список имен источников модуля
@@ -28,15 +28,15 @@ class BrokerAppConfig(AppConfig):
 
         # Выбираем источники, которые уже есть в бд
         db_sources = set(
-            SourceModel.objects.all().values_list('source', flat=True)
+            Source.objects.all().values_list('source', flat=True)
         )
 
         # Удаляем источники, которых нет в модуле
-        SourceModel.objects.filter(source__in=(db_sources - module_sources)) \
+        Source.objects.filter(source__in=(db_sources - module_sources)) \
             .delete()
 
         # Добавляем источники, которых нет в бд
-        SourceModel.objects.bulk_create([
-            SourceModel(source=name_source) for name_source
+        Source.objects.bulk_create([
+            Source(source=name_source) for name_source
             in (module_sources - db_sources)
         ])
