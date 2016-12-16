@@ -2,6 +2,8 @@
 
 from broker.meta import BaseClassMeta
 
+from decorators import signal, callback
+
 
 class BaseClass(object):
     """
@@ -83,9 +85,20 @@ class KmClient(MysqlDBSource):
     def __init__(self, *args, **kwargs):
         super(KmClient, self).__init__(*args, **kwargs)
 
-    # signals
+    @signal()
+    def km_signal_1(self):
+        pass
 
-    # callbacks
+    @signal()
+    def km_signal_2(self):
+        pass
+
+    def km_signal_3(self):
+        pass
+
+    @callback
+    def km_callback_1(self):
+        pass
 
 
 class IDA2(MysqlDBSource):
@@ -97,6 +110,18 @@ class IDA2(MysqlDBSource):
     def __init__(self, *args, **kwargs):
         super(IDA2, self).__init__(*args, **kwargs)
 
-    # signals
+    @signal()
+    def ida_signal_1(self):
+        pass
 
-    # callbacks
+
+    def ida_signal_2(self):
+        pass
+
+    @callback
+    def ida_callback_1(self):
+        pass
+
+    @callback
+    def ida_callback_2(self):
+        pass

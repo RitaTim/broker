@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block content %}
+    {{ block.super }}
+{% endblock %}
+
+
+{% block admin_change_form_document_ready %}
+    {{ block.super }}
+    <script type="text/javascript" src="{% static 'main/js/jquery.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'broker/js/rule_form.js' %}"></script>
+{% endblock %}
