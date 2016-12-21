@@ -3,6 +3,12 @@
 
 {% block content %}
     {{ block.super }}
+
+    <!-- Скрытые поля для работы с полями формы Правил на стороне клиента -->
+    <input id="source_hidden" type="hidden" value="{{ source_hidden }}">
+    <input id="destination_hidden" type="hidden" value="{{ destination_hidden }}">
+    <input id="signal_hidden" type="hidden" value="{{ signal_hidden }}">
+    <input id="callback_hidden" type="hidden" value="{{ callback_hidden }}">
 {% endblock %}
 
 
@@ -10,4 +16,5 @@
     {{ block.super }}
     <script type="text/javascript" src="{% static 'main/js/jquery.min.js' %}"></script>
     <script type="text/javascript" src="{% static 'broker/js/rule_form.js' %}"></script>
+    <script type="text/javascript" src="{% static 'broker/js/rule_actions.js' %}"></script>
 {% endblock %}

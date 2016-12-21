@@ -11,35 +11,29 @@ class RuleAdminForm(forms.ModelForm):
     """
         Форма в админке для создания и редактирования правил брокера
     """
-    source_hidden = forms.CharField(max_length=36, required=False,
-                                    widget=forms.HiddenInput())
-    destination_hidden = forms.CharField(max_length=36, required=False,
-                                         widget=forms.HiddenInput())
-    signal_hidden = forms.CharField(max_length=36, required=False,
-                                    widget=forms.HiddenInput())
-    callback_hidden = forms.CharField(max_length=36, required=False,
-                                      widget=forms.HiddenInput())
-
-    def __init__(self, *args, **kwargs):
-        super(RuleAdminForm, self).__init__(*args, **kwargs)
-        if kwargs.get('instance'):
-            self.fields['source_hidden'].initial = kwargs['instance'].source
-            self.fields['destination_hidden'].initial = kwargs['instance']\
-                                                        .destination
-            self.fields['signal_hidden'].initial = kwargs['instance'].signal
-            self.fields['callback_hidden'].initial = kwargs['instance']\
-                                                     .callback
-
     def clean(self):
-        source_name = self.cleaned_data.get('source_hidden')
-        destination_name = self.cleaned_data.get('destination_hidden')
-        signal = self.cleaned_data.get('signal')
-        callback = self.cleaned_data.get('callback')
+        result = super(RuleAdminForm, self).clean()
 
-        # Проверка, содержит ли источник такой сигнал
-        self._check_cls_has_func(source_name, signal)
-        # Проверка, содержит ли приемник такой коллбэк
-        self._check_cls_has_func(destination_name, callback, 'callbacks')
+        if self.instance.id:
+            source = self.instance.source
+            destination = self.instance.destination
+        else:
+            source = self.cleaned_data.get('source')
+            destination = self.cleaned_data.get('destination')
+
+        if source and destination:
+            signal = self.cleaned_data.get('signal')
+            callback = self.cleaned_data.get('callback')
+
+            if signal:
+                # Проверка, содержит ли источник такой сигнал
+                self._check_cls_has_func(source.source, signal)
+            if callback:
+                # Проверка, содержит ли приемник такой коллбэк
+                self._check_cls_has_func(
+                    destination.source, callback, 'callbacks'
+                )
+        return result
 
     def _check_cls_has_func(self, cls_name, func_name, type_func='signals'):
         """
@@ -53,13 +47,13 @@ class RuleAdminForm(forms.ModelForm):
 
         if not func_name in func_names:
             raise forms.ValidationError(
-                u'У класса {} нет функции {} типа {}'
+                u'У класса {} нет указанной функции {} типа {}'
                 .format(cls_name, func_name, type_func)
             )
 
     class Meta:
         model = Rule
-        fields = ['source', 'destination', 'signal', 'callback']
+        fields = '__all__'
         widgets = {
             'signal': Select(),
             'callback': Select(),

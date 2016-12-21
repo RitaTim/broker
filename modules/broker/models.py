@@ -26,9 +26,8 @@ class Rule(models.Model):
                                related_name="rules_source")
     destination = models.ForeignKey(Source, verbose_name=u"Приемник",
                                     related_name="rules_destination")
-    signal = models.CharField(u"Сигнал", max_length=128, null=True, blank=True)
-    callback = models.CharField(u"Коллбэк", max_length=128, null=True,
-                                blank=True)
+    signal = models.CharField(u"Сигнал", max_length=128, blank=True)
+    callback = models.CharField(u"Callback", max_length=128, blank=True)
 
     class Meta:
         unique_together = ("source", "destination", "signal", "callback")
