@@ -26,7 +26,7 @@ class SourceFunctions(View):
         module = __import__('broker')
         source = get_object_or_404(Source, id=source_id)
         cls = getattr(module.sources, source.source)
-        lst_methods = cls.all_callbacks if type_methods == 'callbacks' \
+        lst_methods = cls.all_callbacks if type_methods == 'callback' \
             else cls.all_signals
         func_names = [f.func_name for f in lst_methods]
         return HttpResponse(json.dumps({type_methods: func_names}))

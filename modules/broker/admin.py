@@ -28,20 +28,6 @@ class RuleAdmin(admin.ModelAdmin):
             return self.readonly_fields + ('source', 'destination')
         return self.readonly_fields
 
-    def change_view(self, request, object_id, form_url='', extra_context=None):
-        context = {}
-        context.update(extra_context or {})
-        instance = get_object_or_404(Rule, id=object_id)
-        context.update({
-            'source_hidden': instance.source_id,
-            'destination_hidden': instance.destination_id,
-            'signal_hidden': instance.signal,
-            'callback_hidden': instance.callback,
-        })
-        return super(RuleAdmin, self).change_view(
-            request, object_id, form_url, context
-        )
-
 admin.site.register(Source, SourceAdmin)
 admin.site.register(Rule, RuleAdmin)
 

@@ -1,19 +1,23 @@
 /*
    Логика работы с объектом Rule брокера в админке
 */
-function ruleManager(){
-    this.get_data_source_methods = '/broker/source/get_methods';
+function ruleManager(source, typeMethod){
+    this.getDataSourceMethods = '/broker/source/get_methods';
+    this.source = source;
+    this.typeMethod = typeMethod;
 };
 
-ruleManager.prototype.get_methods_for_cls = function(source, type_methods){
+ruleManager.prototype.get_methods_for_cls = function(){
+    var self = this;
     $.getJSON(
-        [this.get_data_source_methods, type_methods, source].join("/"),
+        [self.getDataSourceMethods, self.typeMethod, self.source].join("/"),
         function (data) {
-            if (data[type_methods]) {
-                $.event.trigger('Rule.update_select', {
-                    'type_methods': type_methods,
-                    'methods': data[type_methods]
-                });
+            if (data[self.typeMethod]) {
+                $('select[name=' + self.typeMethod + ']').triggerHandler(
+                    'Rule.' + self.typeMethod + '.update_select', {
+                        'methods': data[self.typeMethod]
+                    }
+                );
             }
         }
     );
