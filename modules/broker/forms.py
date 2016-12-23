@@ -3,7 +3,7 @@
 from django import forms
 from django.forms import Select
 
-from models import Rule
+from models import Rule, SignalLog
 from broker import sources as broker_sources
 
 
@@ -67,3 +67,13 @@ class RuleAdminForm(forms.ModelForm):
             'signal': Select(),
             'callback': Select(),
         }
+
+
+class SignalLogForm(forms.ModelForm):
+    """
+        Форма для модели логирования сигналов
+    """
+
+    class Meta:
+        model = SignalLog
+        fields = '__all__'

@@ -3,6 +3,7 @@
 from broker.meta import BaseClassMeta
 
 from decorators import signal, callback
+from .models import Source as SourceModel
 
 
 class BaseClass(object):
@@ -24,31 +25,16 @@ class Source(BaseClass):
     source_model = None
 
     def __init__(self, *args, **kwargs):
-        pass
+        super(Source, self).__init__()
         # определяем параметры, общие для всех источников
 
-    @staticmethod
-    def get_init_params(self):
+    def get_source_model(self):
         """
-            Возвращает параметры источника в формате json
+            Возвращает объект модели Source по имени класса
         """
-        pass
-
-    @staticmethod
-    def set_source_model(self, source_model):
-        """
-            Связывает экземпляр класса с объектом модели Source
-        """
-        self.source_model = source_model
-
-    @staticmethod
-    def create_source_model(self):
-        """
-            Создает объект в таблице Source
-        """
-        # создаем source model
-        # устанавливаем атрибут self.set_source_model(source_model)
-        pass
+        if SourceModel.objects.filter(source=self.__class__.__name__).exists():
+            return SourceModel.objects.get(source=self.__class__.__name__)
+        return None
 
 
 class DataBaseSourse(Source):
@@ -113,7 +99,6 @@ class IDA2(MysqlDBSource):
     @signal()
     def ida_signal_1(self):
         pass
-
 
     def ida_signal_2(self):
         pass
