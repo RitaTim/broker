@@ -3,8 +3,8 @@
 from django import forms
 from django.forms import Select
 
-from models import Rule, SignalLog
 from broker import sources as broker_sources
+from models import Rule
 
 
 class RuleAdminForm(forms.ModelForm):
@@ -62,18 +62,10 @@ class RuleAdminForm(forms.ModelForm):
 
     class Meta:
         model = Rule
-        fields = '__all__'
+        fields = forms.ALL_FIELDS
         widgets = {
             'signal': Select(),
             'callback': Select(),
         }
 
 
-class SignalLogForm(forms.ModelForm):
-    """
-        Форма для модели логирования сигналов
-    """
-
-    class Meta:
-        model = SignalLog
-        fields = '__all__'

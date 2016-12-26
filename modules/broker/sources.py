@@ -26,15 +26,11 @@ class Source(BaseClass):
 
     def __init__(self, *args, **kwargs):
         super(Source, self).__init__()
-        # определяем параметры, общие для всех источников
-
-    def get_source_model(self):
-        """
-            Возвращает объект модели Source по имени класса
-        """
-        if SourceModel.objects.filter(source=self.__class__.__name__).exists():
-            return SourceModel.objects.get(source=self.__class__.__name__)
-        return None
+        cls_name = self.__class__.__name__
+        if not SourceModel.objects.filter(source=cls_name).exists():
+            raise ValueError(u"Source '{}' not has object of model"
+                             .format(cls_name))
+        self.source_model = SourceModel.objects.get(source=cls_name)
 
 
 class DataBaseSourse(Source):
