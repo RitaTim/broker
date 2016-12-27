@@ -29,7 +29,21 @@ class SignalLog(models.Model):
 
 class CallbackLog(models.Model):
     """
-        Модель для логирования данных по обработчикам событий
+        Модель для логирования данных по обработчикам событий.
+        Включает в себя поля:
+            signal_logger - лог сигнала
+            destination - приемник сигнала
+            callback - название обработчика сигнала
+            params - параметры, с которыми будет вызываться callback
+            state - состояние таска обработчика:
+                pending - в ожидании
+                process - выполняется
+                success - успешно завершен
+                failure - завершен с ошибкой
+            message - сообщение
+            result - результат таска
+            created - дата создания
+            updated - дата обновления
     """
     STATE_CHOICES = (
         ('pending', 'Pending'),
@@ -38,14 +52,15 @@ class CallbackLog(models.Model):
         ('failure', 'Failure'),
     )
 
-    STATE_DEFAULT = 'pending'
-
     signal_logger = models.ForeignKey(SignalLog, verbose_name=u"Лог события",
                                       related_name="signal_logger")
-    destination = models.CharField(u"Приемник", max_length=128)
+    destination = models.ForeignKey(Source, verbose_name=u"Приемник",
+                                    related_name="callback_log_source")
     callback = models.CharField(u"Callback", max_length=128)
     params = JSONField(default=json.dumps({}), null=True, blank=True)
     state = models.CharField(u"Состояние", max_length=128,
-                             choices=STATE_CHOICES, default=STATE_DEFAULT)
+                             choices=STATE_CHOICES, default='pending')
     message = models.TextField(u"Сообщение", null=True, blank=True)
     result = JSONField(default=json.dumps({}), null=True, blank=True)
+    created = models.DateTimeField(u"Дата создания", auto_now_add=True)
+    updated = models.DateTimeField(u"Дата обновления", auto_now=True)

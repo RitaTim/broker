@@ -27,10 +27,11 @@ class Source(BaseClass):
     def __init__(self, *args, **kwargs):
         super(Source, self).__init__()
         cls_name = self.__class__.__name__
-        if not SourceModel.objects.filter(source=cls_name).exists():
+        try:
+            self.source_model = SourceModel.objects.get(source=cls_name)
+        except SourceModel.DoesNotExist:
             raise ValueError(u"Source '{}' not has object of model"
                              .format(cls_name))
-        self.source_model = SourceModel.objects.get(source=cls_name)
 
 
 class DataBaseSourse(Source):
@@ -79,7 +80,7 @@ class KmClient(MysqlDBSource):
         pass
 
     @callback
-    def km_callback_1(self):
+    def km_callback_1(self, *args, **kwargs):
         pass
 
 
@@ -100,9 +101,9 @@ class IDA2(MysqlDBSource):
         pass
 
     @callback
-    def ida_callback_1(self):
-        pass
+    def ida_callback_1(self, *args, **kwargs):
+        print 'ida_callback_1'
 
     @callback
-    def ida_callback_2(self):
-        pass
+    def ida_callback_2(self, *args, **kwargs):
+        print 'ida_callback_2'

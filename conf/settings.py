@@ -156,3 +156,9 @@ if DEBUG:
         ('debug_toolbar.middleware.DebugToolbarMiddleware',) +
         MIDDLEWARE_CLASSES[1:-1]
     )
+
+EMAIL_DEFAULT_FROM = "broker@km-union.ru"
+SERVICE_EMAIL_DEFAULT_FROM = "broker@km-union.ru"
+SERVICE_EMAIL_COPY = "broker@km-union.ru"
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp1.km-union.ru'

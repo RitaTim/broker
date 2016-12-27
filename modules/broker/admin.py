@@ -16,7 +16,7 @@ class SourceAdmin(admin.ModelAdmin):
 
 class RuleAdmin(admin.ModelAdmin):
     list_display = ('source', 'destination')
-    fields = ['source', 'signal', 'destination', 'callback']
+    fields = ['source', 'signal', 'destination', 'callback', 'params']
 
     add_form_template = "admin/broker/rule/change_form_template.html"
     change_form_template = add_form_template
