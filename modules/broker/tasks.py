@@ -50,14 +50,8 @@ def send_signal(*args, **kwargs):
             'callback': rule.callback,
             'params': json.dumps(params)
         })
-        try:
-            if not callback_log_form.is_valid():
-                raise LogFormValidateError(
-                    u'Callback "{0}" from source "{1}" generated not correct'
-                    .format(rule.callback, rule.destination.source),
-                    callback_log_form.errors
-                )
 
+        if callback_log_form.is_valid():
             callback_log = callback_log_form.save()
 
             # Запускаем callback
@@ -66,8 +60,11 @@ def send_signal(*args, **kwargs):
                 kwargs=signal_log.kwargs_signal,
                 **params
             )
-        except LogFormValidateError as e:
-            err_msg = u"{}: {}".format(e.message, e.errors)
+        else:
+            err_msg = u"Callback '{0}' from source '{1}' " \
+                      u"generated not correct: {2}" \
+                      .format(rule.callback, rule.destination.source,
+                              callback_log_form.errors)
             logger.error(err_msg)
             mail_admins(u"Ошибка при вызове callbacks", u"",
                         html_message=err_msg)
