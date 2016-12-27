@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import json
-
 from django.contrib.postgres.fields import JSONField
 from django.db import models
 
@@ -21,9 +19,9 @@ class SignalLog(models.Model):
     source = models.ForeignKey(Source, verbose_name=u"Источник",
                                related_name="signal_log_source")
     signature = models.CharField(u"Сигнатура", max_length=128)
-    args_signal = JSONField(default=json.dumps([]), null=True, blank=True)
-    kwargs_signal = JSONField(default=json.dumps({}), null=True, blank=True)
-    params = JSONField(default=json.dumps({}), null=True, blank=True)
+    args_signal = JSONField(null=True, blank=True)
+    kwargs_signal = JSONField(null=True, blank=True)
+    params = JSONField(null=True, blank=True)
     date_create = models.DateTimeField(u"Дата создания", auto_now_add=True)
 
 
@@ -57,10 +55,10 @@ class CallbackLog(models.Model):
     destination = models.ForeignKey(Source, verbose_name=u"Приемник",
                                     related_name="callback_log_source")
     callback = models.CharField(u"Callback", max_length=128)
-    params = JSONField(default=json.dumps({}), null=True, blank=True)
+    params = JSONField(null=True, blank=True)
     state = models.CharField(u"Состояние", max_length=128,
                              choices=STATE_CHOICES, default='pending')
     message = models.TextField(u"Сообщение", null=True, blank=True)
-    result = JSONField(default=json.dumps({}), null=True, blank=True)
+    result = JSONField(null=True, blank=True)
     created = models.DateTimeField(u"Дата создания", auto_now_add=True)
     updated = models.DateTimeField(u"Дата обновления", auto_now=True)

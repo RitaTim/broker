@@ -25,8 +25,7 @@ def send_signal(*args, **kwargs):
     # Подготавливаем данные для формы логирования
     json_value = ('params', 'args_signal', 'kwargs_signal')
     data = dict(
-        [(key,
-          json.dumps(value) if key in json_value else value)
+        [(key, json.dumps(value) if key in json_value else value)
          for key, value in kwargs.iteritems()]
     )
     # Логируем поступление сигнала
@@ -34,23 +33,22 @@ def send_signal(*args, **kwargs):
     if not signal_log_form.is_valid():
         raise LogFormValidateError(
             u'Signal "{0}" from source "{1}" was generated not correct'.format(
-                kwargs['signature'], kwargs['source']),
+                data['signature'], data['source']),
             signal_log_form.errors
         )
     signal_log = signal_log_form.save()
 
     # Анализ правил
     rules = signal_log_form.get_rules()
-    callbacks_errors = []
     for rule in rules:
         # логируем callback
         params = deepcopy(signal_log_form.cleaned_data['params'])
-        # params.update(rule.params)
+        params.update(rule.params or {})
         callback_log_form = CallbackLogForm({
             'signal_logger': signal_log.pk,
             'destination': rule.destination.pk,
             'callback': rule.callback,
-            'params': params
+            'params': json.dumps(params)
         })
         try:
             if not callback_log_form.is_valid():
@@ -59,24 +57,20 @@ def send_signal(*args, **kwargs):
                     .format(rule.callback, rule.destination.source),
                     callback_log_form.errors
                 )
+
+            callback_log = callback_log_form.save()
+
+            # Запускаем callback
+            receive_signal.apply_async(
+                args=[callback_log.pk] + signal_log.args_signal,
+                kwargs=signal_log.kwargs_signal,
+                **params
+            )
         except LogFormValidateError as e:
             err_msg = u"{}: {}".format(e.message, e.errors)
             logger.error(err_msg)
-            callbacks_errors.append(err_msg)
-            continue
-
-        callback_log = callback_log_form.save()
-
-        # Запускаем callback
-        receive_signal.apply_async(
-            args=[callback_log.pk] + signal_log.args_signal,
-            kwargs=signal_log.kwargs_signal,
-            **params
-        )
-
-    if callbacks_errors:
-        mail_admins(u"Ошибка при вызове callbacks", u"",
-                    html_message=u"<br>".join(callbacks_errors))
+            mail_admins(u"Ошибка при вызове callbacks", u"",
+                        html_message=err_msg)
 
 
 @app.task(name="receive_signal")

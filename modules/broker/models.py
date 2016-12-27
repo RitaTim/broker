@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import json
-
 from django.db import models
 from django.contrib.postgres.fields import JSONField
 
@@ -11,7 +9,7 @@ class Source(models.Model):
         Модель для хранения информации об источниках
     """
     source = models.CharField(u"Тип источника", max_length=128)
-    init_params = JSONField(default=json.dumps({}), null=True, blank=True)
+    init_params = JSONField(null=True, blank=True)
 
     def __unicode__(self):
         return self.source
@@ -28,7 +26,7 @@ class Rule(models.Model):
                                     related_name="rules_destination")
     signal = models.CharField(u"Сигнал", max_length=128, blank=True)
     callback = models.CharField(u"Callback", max_length=128, blank=True)
-    params = JSONField(default=json.dumps({}), null=True, blank=True)
+    params = JSONField(null=True, blank=True)
 
     class Meta:
         unique_together = ("source", "destination", "signal", "callback")
