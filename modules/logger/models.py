@@ -60,5 +60,6 @@ class CallbackLog(models.Model):
                              choices=STATE_CHOICES, default='pending')
     message = models.TextField(u"Сообщение", null=True, blank=True)
     result = JSONField(null=True, blank=True)
+    uuid_task = models.UUIDField(u"Uuid таска", null=True, blank=True)
     created = models.DateTimeField(u"Дата создания", auto_now_add=True)
     updated = models.DateTimeField(u"Дата обновления", auto_now=True)

@@ -107,19 +107,45 @@ CELERY_TASK_RESULT_EXPIRES = 1500  # 15 min
 
 from kombu import Queue, Exchange, binding
 
-topic = Exchange('main', type='topic')
+topic = Exchange('brocker', type='topic')
 
-CELERY_QUEUES = (
-    Queue('default'),
-    Queue('analize', [
-        binding(exchange=topic, routing_key='task.*'),
-        binding(exchange=topic, routing_key='*.analize'),
-    ]),
-    Queue('logger', [
-        binding(exchange=topic, routing_key='task.*'),
-        binding(exchange=topic, routing_key='*.logger'),
-    ]),
-)
+CELERY_QUEUES = {
+    "callbacks": {
+        "binding_key": "*.callbacks",
+        "routing_key": "*.callbacks",
+        "exchange": "broker",
+        "exchange_type": "topic",
+    },
+    "logger":{
+        "binding_key": "*.logger",
+        "routing_key": "*.logger",
+        "exchange": "broker",
+        "exchange_type": "topic",
+    },
+    "default": {
+        "exchange": "default",
+    }
+}
+
+# CELERY_QUEUES = (
+#     Queue('analize', [
+#         binding(exchange=topic, routing_key='task.*'),
+#         binding(exchange=topic, routing_key='*.analize'),
+#     ]),
+#     Queue('logger', [
+#         binding(exchange=topic, routing_key='task.*'),
+#         binding(exchange=topic, routing_key='*.logger'),
+#     ]),
+#     Queue('callbacks', [
+#         binding(exchange=topic, routing_key='task.*'),
+#         binding(exchange=topic, routing_key='*.callbacks'),
+#     ]),
+#     Queue('control', [
+#         binding(exchange=topic, routing_key='task.*'),
+#         binding(exchange=topic, routing_key='*.control'),
+#     ]),
+#     Queue('default')
+# )
 
 CELERY_DEFAULT_QUEUE = 'default'
 CELERY_DEFAULT_ROUTING_KEY = 'default'
@@ -162,3 +188,5 @@ SERVICE_EMAIL_DEFAULT_FROM = "broker@km-union.ru"
 SERVICE_EMAIL_COPY = "broker@km-union.ru"
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp1.km-union.ru'
+
+COUNTDOWN_DEFAULT = 30  # секунд

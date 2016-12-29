@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from broker.decorators.decorators import signal, callback
 from broker.meta import BaseClassMeta
-
-from decorators import signal, callback
 from .models import Source as SourceModel
 
 
@@ -103,7 +102,12 @@ class IDA2(MysqlDBSource):
     @callback
     def ida_callback_1(self, *args, **kwargs):
         print 'ida_callback_1'
+        raise SpecialException('ha ha ha HA')
 
     @callback
     def ida_callback_2(self, *args, **kwargs):
         print 'ida_callback_2'
+
+
+class SpecialException(Exception):
+    pass

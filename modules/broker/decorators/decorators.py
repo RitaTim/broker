@@ -2,7 +2,7 @@
 
 from functools import wraps
 
-from .tasks import send_signal
+from broker.tasks import send_signal
 
 
 def signal(*args, **kwargs):

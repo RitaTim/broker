@@ -7,16 +7,17 @@ from celery.utils.log import get_task_logger
 from django.core.mail import mail_admins
 
 from app_celery.analize import app
-from logger.models import CallbackLog
-from logger.forms import SignalLogForm, CallbackLogForm
+from broker.decorators.decorators_tasks import set_state_callback, \
+    retry_task, expire_task
 from logger.exceptions import LogFormValidateError
-
+from logger.forms import SignalLogForm, CallbackLogForm
+from logger.models import CallbackLog
 
 logger = get_task_logger(__name__)
 module_broker = __import__('broker')
 
 
-@app.task(name="send_signal")
+@app.task(name="send_signal", queue="logger")
 def send_signal(*args, **kwargs):
     """
         Осуществляет логирование сигналов и обработчиков,
@@ -54,12 +55,15 @@ def send_signal(*args, **kwargs):
         if callback_log_form.is_valid():
             callback_log = callback_log_form.save()
 
+            signal_log.kwargs_signal.update(params or {})
             # Запускаем callback
-            receive_signal.apply_async(
+            async_result = receive_signal.apply_async(
                 args=[callback_log.pk] + signal_log.args_signal,
                 kwargs=signal_log.kwargs_signal,
                 **params
             )
+            callback_log.uuid_task = async_result.id
+            callback_log.save()
         else:
             err_msg = u"Callback '{0}' from source '{1}' " \
                       u"generated not correct: {2}" \
@@ -70,8 +74,11 @@ def send_signal(*args, **kwargs):
                         html_message=err_msg)
 
 
-@app.task(name="receive_signal")
-def receive_signal(callback_log_id, *args, **kwargs):
+@app.task(name="receive_signal", bind=True, queue="callbacks")
+@set_state_callback
+@expire_task
+@retry_task
+def receive_signal(self, callback_log_id, *args, **kwargs):
     """
         Запуск обработчика сигнала
     """
