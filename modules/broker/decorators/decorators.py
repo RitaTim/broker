@@ -14,12 +14,17 @@ def signal(*args, **kwargs):
         def wrapper(self, *args_method, **kwargs_method):
             # Формируем параметры сигнала
             send_signal.apply_async(kwargs={
+                # источник сигнала
                 'source': self.source_model.pk,
+                # его сигнатура
                 'signature': func.func_name,
+                # неименованные параметры сигнала
                 'args_signal': args_method,
+                # именованные параметры сигнала
                 'kwargs_signal': kwargs_method,
-                'params': kwargs    # для логирования
-            }, **kwargs)
+                # параметры для обработчика
+                'params': kwargs
+            })
         return wrapper
     return decorator
 

@@ -41,10 +41,6 @@ class DataBaseSourse(Source):
         super(DataBaseSourse, self).__init__(*args, **kwargs)
         # определяем параметры источника - БД
 
-    # signals
-
-    # callbacks
-
 
 class MysqlDBSource(DataBaseSourse):
     """
@@ -101,8 +97,12 @@ class IDA2(MysqlDBSource):
 
     @callback
     def ida_callback_1(self, *args, **kwargs):
-        print 'ida_callback_1'
-        raise SpecialException('ha ha ha HA')
+        import random
+        fortuna = random.randint(0, 100)
+        print 'ida_callback_1 - {0}'.format(fortuna)
+        if fortuna <= 60:
+            raise SpecialException('ha ha ha HA')
+        return 'All is well!'
 
     @callback
     def ida_callback_2(self, *args, **kwargs):

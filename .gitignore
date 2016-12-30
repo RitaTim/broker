@@ -1,0 +1,5 @@
+.idea/
+bin/
+conf/settings_local.py
+bootstrap.py
+*.pyc

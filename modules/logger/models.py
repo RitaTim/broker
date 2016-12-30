@@ -44,22 +44,28 @@ class CallbackLog(models.Model):
             updated - дата обновления
     """
     STATE_CHOICES = (
-        ('pending', 'Pending'),
-        ('process', 'Process'),
-        ('success', 'Success'),
-        ('failure', 'Failure'),
+        ('pending', u'В ожидании'),
+        ('process', u'Выполняется'),
+        ('success', u'Успешно завершён'),
+        ('failure', u'Завершен с ошибкой'),
     )
+
+    STATES = {
+        'start': ('pending',),
+        'process': ('process',),
+        'final': ('success', 'failure')
+    }
 
     signal_logger = models.ForeignKey(SignalLog, verbose_name=u"Лог события",
                                       related_name="signal_logger")
     destination = models.ForeignKey(Source, verbose_name=u"Приемник",
                                     related_name="callback_log_source")
-    callback = models.CharField(u"Callback", max_length=128)
+    callback = models.CharField(u"Обработчик", max_length=128)
     params = JSONField(null=True, blank=True)
     state = models.CharField(u"Состояние", max_length=128,
                              choices=STATE_CHOICES, default='pending')
     message = models.TextField(u"Сообщение", null=True, blank=True)
     result = JSONField(null=True, blank=True)
-    uuid_task = models.UUIDField(u"Uuid таска", null=True, blank=True)
+    task_uuid = models.UUIDField(u"Uuid таска", null=True, blank=True)
     created = models.DateTimeField(u"Дата создания", auto_now_add=True)
     updated = models.DateTimeField(u"Дата обновления", auto_now=True)

@@ -1,8 +1,19 @@
 # -*- coding: utf-8 -*-
 
+"""
+    Данная реализация позволяет представить все необходимые Source'ы (источники
+    и получатели) в виде моделей в базе данных.
+
+    Естественно, что при запуске initial миграций (deploy проекта), данный код
+    будет генерировать SQL ошибки.
+"""
+
+
 import inspect
+import warnings
 
 from django.apps import AppConfig
+from django.db.utils import ProgrammingError
 
 
 class BrokerAppConfig(AppConfig):
@@ -26,17 +37,20 @@ class BrokerAppConfig(AppConfig):
             if getattr(source, 'is_proxy', None) == False
         )
 
-        # Выбираем источники, которые уже есть в бд
-        db_sources = set(
-            Source.objects.all().values_list('source', flat=True)
-        )
+        try:
+            # Выбираем источники, которые уже есть в бд
+            db_sources = set(
+                Source.objects.all().values_list('source', flat=True)
+            )
 
-        # Удаляем источники, которых нет в модуле
-        Source.objects.filter(source__in=(db_sources - module_sources)) \
-            .delete()
+            # Удаляем источники, которых нет в модуле
+            Source.objects.filter(source__in=(db_sources - module_sources)) \
+                .delete()
 
-        # Добавляем источники, которых нет в бд
-        Source.objects.bulk_create([
-            Source(source=name_source) for name_source
-            in (module_sources - db_sources)
-        ])
+            # Добавляем источники, которых нет в бд
+            Source.objects.bulk_create([
+                Source(source=name_source) for name_source
+                in (module_sources - db_sources)
+            ])
+        except ProgrammingError:
+            warnings.warn('Only if deployed')

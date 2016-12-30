@@ -6,14 +6,15 @@ from copy import deepcopy
 from celery.utils.log import get_task_logger
 from django.core.mail import mail_admins
 
-from app_celery.analize import app
-from broker.decorators.decorators_tasks import set_state_callback, \
+from app_celery import app
+from broker.decorators.decorators_tasks import set_state, \
     retry_task, expire_task
 from logger.exceptions import LogFormValidateError
 from logger.forms import SignalLogForm, CallbackLogForm
 from logger.models import CallbackLog
 
-logger = get_task_logger(__name__)
+
+task_logger = get_task_logger(__name__)
 module_broker = __import__('broker')
 
 
@@ -33,17 +34,16 @@ def send_signal(*args, **kwargs):
     signal_log_form = SignalLogForm(data)
     if not signal_log_form.is_valid():
         raise LogFormValidateError(
-            u'Signal "{0}" from source "{1}" was generated not correct'.format(
+            u'Сигнал "{0}" от источника "{1}" сгенерирован с ошибкой'.format(
                 data['signature'], data['source']),
             signal_log_form.errors
         )
     signal_log = signal_log_form.save()
-
     # Анализ правил
     rules = signal_log_form.get_rules()
     for rule in rules:
         # логируем callback
-        params = deepcopy(signal_log_form.cleaned_data['params'])
+        params = deepcopy(signal_log.params)
         params.update(rule.params or {})
         callback_log_form = CallbackLogForm({
             'signal_logger': signal_log.pk,
@@ -51,31 +51,28 @@ def send_signal(*args, **kwargs):
             'callback': rule.callback,
             'params': json.dumps(params)
         })
-
+        # и вызываем его
         if callback_log_form.is_valid():
             callback_log = callback_log_form.save()
-
-            signal_log.kwargs_signal.update(params or {})
             # Запускаем callback
             async_result = receive_signal.apply_async(
                 args=[callback_log.pk] + signal_log.args_signal,
                 kwargs=signal_log.kwargs_signal,
                 **params
             )
-            callback_log.uuid_task = async_result.id
+            callback_log.task_uuid = async_result.id
             callback_log.save()
         else:
-            err_msg = u"Callback '{0}' from source '{1}' " \
-                      u"generated not correct: {2}" \
-                      .format(rule.callback, rule.destination.source,
-                              callback_log_form.errors)
-            logger.error(err_msg)
-            mail_admins(u"Ошибка при вызове callbacks", u"",
+            err_msg = u"Обработчик '{0}' для '{1}' задан не корректно: {2}"\
+                .format(rule.callback, rule.destination.source,
+                        callback_log_form.errors)
+            task_logger.error(err_msg)
+            mail_admins(u"Ошибка при анализе правила", u"",
                         html_message=err_msg)
 
 
-@app.task(name="receive_signal", bind=True, queue="callbacks")
-@set_state_callback
+@app.task(name="receive_signal", bind=True, queue="receiver")
+@set_state
 @expire_task
 @retry_task
 def receive_signal(self, callback_log_id, *args, **kwargs):
@@ -83,8 +80,10 @@ def receive_signal(self, callback_log_id, *args, **kwargs):
         Запуск обработчика сигнала
     """
     callback_log = CallbackLog.objects.get(id=callback_log_id)
-    destination_intance = getattr(module_broker.sources,
-                                  callback_log.destination.source)()
-    callback = getattr(destination_intance, callback_log.callback)
+    destination_instance = getattr(module_broker.sources,
+                                   callback_log.destination.source)()
+    callback = getattr(destination_instance, callback_log.callback)
     if callable(callback):
-        callback(*args, **kwargs)
+        return callback(*args, **kwargs)
+    task_logger.warning(u'Обработчик "{0}" не является методом'.format(
+        callback_log.callback))

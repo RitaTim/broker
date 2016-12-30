@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 # Django settings for bootstrap project.
 import os
+from kombu import Queue, Exchange
+
 from django.core.exceptions import ImproperlyConfigured
+
 
 PROJECT_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), '../'))
 
@@ -41,7 +44,6 @@ SECRET_KEY = '&_1f-rlk%j)s@=7n+w0ot27zxvp(@h!eyq27apf-9y4c*mc6s*'
 WSGI_APPLICATION = 'wsgi.application'
 
 MODULES = [
-    'analize',
     'logger',
     'broker',
     'main'
@@ -103,49 +105,7 @@ STATIC_ROOT = os.path.join(PROJECT_PATH, 'static')
 
 
 CELERY_RESULT_BACKEND = 'redis://'
-CELERY_TASK_RESULT_EXPIRES = 1500  # 15 min
-
-from kombu import Queue, Exchange, binding
-
-topic = Exchange('brocker', type='topic')
-
-CELERY_QUEUES = {
-    "callbacks": {
-        "binding_key": "*.callbacks",
-        "routing_key": "*.callbacks",
-        "exchange": "broker",
-        "exchange_type": "topic",
-    },
-    "logger":{
-        "binding_key": "*.logger",
-        "routing_key": "*.logger",
-        "exchange": "broker",
-        "exchange_type": "topic",
-    },
-    "default": {
-        "exchange": "default",
-    }
-}
-
-# CELERY_QUEUES = (
-#     Queue('analize', [
-#         binding(exchange=topic, routing_key='task.*'),
-#         binding(exchange=topic, routing_key='*.analize'),
-#     ]),
-#     Queue('logger', [
-#         binding(exchange=topic, routing_key='task.*'),
-#         binding(exchange=topic, routing_key='*.logger'),
-#     ]),
-#     Queue('callbacks', [
-#         binding(exchange=topic, routing_key='task.*'),
-#         binding(exchange=topic, routing_key='*.callbacks'),
-#     ]),
-#     Queue('control', [
-#         binding(exchange=topic, routing_key='task.*'),
-#         binding(exchange=topic, routing_key='*.control'),
-#     ]),
-#     Queue('default')
-# )
+CELERY_TASK_RESULT_EXPIRES = 900  # 15 min
 
 CELERY_DEFAULT_QUEUE = 'default'
 CELERY_DEFAULT_ROUTING_KEY = 'default'
@@ -153,7 +113,18 @@ CELERY_DEFAULT_EXCHANGE = 'default'
 CELERY_DEFAULT_EXCHANGE_TYPE = 'direct'
 CELERY_SEND_TASK_ERROR_EMAILS = True
 
-BROKER_URL = ""
+
+default_exchange = Exchange(CELERY_DEFAULT_EXCHANGE,
+                            CELERY_DEFAULT_EXCHANGE_TYPE)
+CELERY_QUEUES = (
+    Queue(CELERY_DEFAULT_QUEUE, exchange=default_exchange,
+          routing_key=CELERY_DEFAULT_QUEUE),
+    Queue('receiver', exchange=default_exchange, routing_key='receiver'),
+    Queue('logger', exchange=default_exchange, routing_key='logger'),
+    Queue('control', exchange=default_exchange, routing_key='control'),
+)
+
+BROKER_URL = None
 
 from settings_local import *
 
@@ -182,11 +153,3 @@ if DEBUG:
         ('debug_toolbar.middleware.DebugToolbarMiddleware',) +
         MIDDLEWARE_CLASSES[1:-1]
     )
-
-EMAIL_DEFAULT_FROM = "broker@km-union.ru"
-SERVICE_EMAIL_DEFAULT_FROM = "broker@km-union.ru"
-SERVICE_EMAIL_COPY = "broker@km-union.ru"
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp1.km-union.ru'
-
-COUNTDOWN_DEFAULT = 30  # секунд
