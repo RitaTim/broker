@@ -5,6 +5,7 @@ from copy import deepcopy
 
 from celery.utils.log import get_task_logger
 from django.core.mail import mail_admins
+from django.db import transaction
 
 from app_celery import app
 from broker.decorators.decorators_tasks import set_state, \
@@ -19,6 +20,7 @@ module_broker = __import__('broker')
 
 
 @app.task(name="send_signal", queue="logger")
+@transaction.atomic()
 def send_signal(*args, **kwargs):
     """
         Осуществляет логирование сигналов и обработчиков,

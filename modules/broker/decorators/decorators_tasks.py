@@ -4,7 +4,6 @@ from functools import wraps
 
 from celery.utils.log import get_task_logger
 from celery.exceptions import Retry
-
 from django.utils.module_loading import import_string
 from django.conf import settings
 from django.db import transaction
@@ -38,10 +37,17 @@ def set_state(func, *args, **kwargs):
             result = func(self, callback_log_id, *args_callback,
                           **kwargs_callback)
             # помечаем таск успешно выполненным
+            self.callback_log.refresh_from_db()
             with transaction.atomic():
                 self.callback_log.state = 'success'
                 self.callback_log.result = result
                 self.callback_log.save(update_fields=('state', 'result'))
+            # если есть уид таска для отмены, сбрасываем
+            if self.callback_log.check_task_uuid:
+                task_logger.info(u'Сбрасываем task "{0}" по отмене'.format(
+                    self.callback_log.check_task_uuid))
+                app.control.revoke(str(self.callback_log.check_task_uuid),
+                                   terminate=True, signal='SIGKILL')
             return result
         except Retry:
             # при повторе мы не меняем атрибуты callback_log
@@ -75,10 +81,13 @@ def expire_task(func, *args, **kwargs):
                 'terminate_in_process', False)
             if expire:
                 # Запускаем таск проверки состояния обработчика через expire
-                check_state_by_expire.apply_async(
+                async_result = check_state_by_expire.apply_async(
                     args=[callback_log_id, terminate_in_process],
                     countdown=expire
                 )
+                with transaction.atomic():
+                    self.callback_log.check_task_uuid = async_result.id
+                    self.callback_log.save(update_fields=('check_task_uuid',))
         return func(self, callback_log_id, *args_callback, **kwargs_callback)
     return wrapper
 
@@ -103,13 +112,14 @@ def check_state_by_expire(callback_log_id, terminate_in_process):
     elif callback_log.state in CallbackLog.STATES['start'] \
             or (callback_log.state in CallbackLog.STATES['process']
                 and terminate_in_process):
-        app.control.revoke(callback_log.task_uuid.hex)
+        app.control.revoke(str(callback_log.task_uuid), terminate=True,
+                           signal='SIGKILL')
         with transaction.atomic():
             callback_log.state = 'failure'
             callback_log.message = 'Skipped by "check_state_by_expire"'
             callback_log.save(update_fields=('state', 'message'))
         task_logger.warning(u'Сбросил task "{0}"'.format(
-            callback_log.task_uuid.hex))
+            callback_log.task_uuid))
 
 
 def retry_task(func, *args, **kwargs):
