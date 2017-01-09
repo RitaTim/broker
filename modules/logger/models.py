@@ -5,6 +5,8 @@ from django.db import models
 
 from broker.models import Source
 
+from app_celery import app
+
 
 class SignalLog(models.Model):
     """
@@ -71,3 +73,16 @@ class CallbackLog(models.Model):
                                        blank=True)
     created = models.DateTimeField(u"Дата создания", auto_now_add=True)
     updated = models.DateTimeField(u"Дата обновления", auto_now=True)
+
+    def revoke_task(self, check_task=False, task_logger=None):
+        """
+            Убивает основной таск обработчика, если НЕ check_task,
+            иначе останавливает таск, проверяющий на expire
+        """
+        task_uuid = self.check_task_uuid if check_task else self.task_uuid
+        if task_uuid:
+            app.control.revoke(str(task_uuid), terminate=True,
+                               signal='SIGKILL')
+            if task_logger:
+                task_logger.info(u'Сбрасываем task "{0}" по отмене'
+                                 .format(task_uuid))

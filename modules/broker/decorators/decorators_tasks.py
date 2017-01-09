@@ -43,11 +43,8 @@ def set_state(func, *args, **kwargs):
                 self.callback_log.result = result
                 self.callback_log.save(update_fields=('state', 'result'))
             # если есть уид таска для отмены, сбрасываем
-            if self.callback_log.check_task_uuid:
-                task_logger.info(u'Сбрасываем task "{0}" по отмене'.format(
-                    self.callback_log.check_task_uuid))
-                app.control.revoke(str(self.callback_log.check_task_uuid),
-                                   terminate=True, signal='SIGKILL')
+            self.callback_log.revoke_task(check_task=True,
+                                          task_logger=task_logger)
             return result
         except Retry:
             # при повторе мы не меняем атрибуты callback_log
@@ -58,6 +55,8 @@ def set_state(func, *args, **kwargs):
                 self.callback_log.state = 'failure'
                 self.callback_log.message = e.message
                 self.callback_log.save(update_fields=('state', 'message'))
+                self.callback_log.revoke_task(check_task=True,
+                                              task_logger=task_logger)
     return wrapper
 
 
@@ -112,14 +111,11 @@ def check_state_by_expire(callback_log_id, terminate_in_process):
     elif callback_log.state in CallbackLog.STATES['start'] \
             or (callback_log.state in CallbackLog.STATES['process']
                 and terminate_in_process):
-        app.control.revoke(str(callback_log.task_uuid), terminate=True,
-                           signal='SIGKILL')
+        callback_log.revoke_task(task_logger=task_logger)
         with transaction.atomic():
             callback_log.state = 'failure'
             callback_log.message = 'Skipped by "check_state_by_expire"'
             callback_log.save(update_fields=('state', 'message'))
-        task_logger.warning(u'Сбросил task "{0}"'.format(
-            callback_log.task_uuid))
 
 
 def retry_task(func, *args, **kwargs):

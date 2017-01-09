@@ -20,7 +20,6 @@ module_broker = __import__('broker')
 
 
 @app.task(name="send_signal", queue="logger")
-@transaction.atomic()
 def send_signal(*args, **kwargs):
     """
         Осуществляет логирование сигналов и обработчиков,
@@ -40,7 +39,9 @@ def send_signal(*args, **kwargs):
                 data['signature'], data['source']),
             signal_log_form.errors
         )
-    signal_log = signal_log_form.save()
+
+    with transaction.atomic():
+        signal_log = signal_log_form.save()
     # Анализ правил
     rules = signal_log_form.get_rules()
     for rule in rules:
@@ -63,7 +64,8 @@ def send_signal(*args, **kwargs):
                 **params
             )
             callback_log.task_uuid = async_result.id
-            callback_log.save()
+            with transaction.atomic():
+                callback_log.save()
         else:
             err_msg = u"Обработчик '{0}' для '{1}' задан не корректно: {2}"\
                 .format(rule.callback, rule.destination.source,
