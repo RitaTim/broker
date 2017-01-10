@@ -8,7 +8,9 @@ class Source(models.Model):
     """
         Модель для хранения информации об источниках
     """
-    source = models.CharField(u"Тип источника", max_length=128)
+    source = models.CharField(u"Источника", max_length=128)
+    type_source = models.CharField(u"Тип источника", max_length=128,
+                                   null=True, blank=True)
     init_params = JSONField(null=True, blank=True)
 
     def __unicode__(self):

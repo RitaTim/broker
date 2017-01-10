@@ -8,7 +8,9 @@ from forms import RuleAdminForm
 
 
 class SourceAdmin(admin.ModelAdmin):
-    list_display = ('source',)
+    list_display = ('source', 'type_source')
+    fields = ['source', 'type_source', 'init_params']
+    readonly_fields = ('type_source',)
 
     class Meta:
         model = Source

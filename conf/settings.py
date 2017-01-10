@@ -153,3 +153,5 @@ if DEBUG:
         ('debug_toolbar.middleware.DebugToolbarMiddleware',) +
         MIDDLEWARE_CLASSES[1:-1]
     )
+
+CONNECTIONS_SOURCES = None
