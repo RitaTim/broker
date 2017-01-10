@@ -6,6 +6,7 @@ from broker.decorators.decorators import signal, callback
 from broker.meta import BaseClassMeta
 
 from .models import Source as SourceModel
+from .helpers import get_db_allias_for_source
 
 
 class BaseClass(object):
@@ -32,7 +33,7 @@ class Source(BaseClass):
         try:
             self.source_model = SourceModel.objects.get(source=cls_name)
         except SourceModel.DoesNotExist:
-            raise ValueError(u"Source '{}' not has object of model"
+            raise ValueError("Source '{}' not has object of model"
                              .format(cls_name))
 
 
@@ -40,23 +41,17 @@ class DataBaseSourse(Source):
     """
         Класс, описывающий тип источника "База данных"
     """
-    type_source = u"db"
+    type_source = "db"
+    cursor = None
 
     def __init__(self, *args, **kwargs):
         super(DataBaseSourse, self).__init__(*args, **kwargs)
         # определяем параметры источника - БД
-
-    def get_alias_db(self):
-        """
-            Возварщает алиас бд источника
-        """
-        return "{}_source".format(self.source_model.source.lower())
-
-    def get_connection_cursor(self):
-        """
-            Возвращает коннектор к базе данных
-        """
-        return settings.CONNECTIONS_SOURCES[self.get_alias_db()].cursor()
+        try:
+            db_alias = get_db_allias_for_source(self.source_model.source)
+            self.cursor = settings.CONNECTIONS_SOURCES[db_alias].cursor()
+        except Exception as e:
+            raise DBConnectError(e.message)
 
 
 class MysqlDBSource(DataBaseSourse):
@@ -75,7 +70,7 @@ class Wsdl(Source):
     """
         Класс источника Wsdl
     """
-    type_source = u"wsdl"
+    type_source = "wsdl"
 
     is_proxy = False
 
@@ -127,7 +122,7 @@ class IDA2(MysqlDBSource):
     @callback
     def ida_callback_1(self, *args, **kwargs):
         # Работать с бд источника можно через ее коннектор
-        cursor = self.get_connection_cursor()
+        cursor = self.cursor
         cursor.execute("SELECT * FROM test")
         print(cursor.fetchall())
 
@@ -144,4 +139,11 @@ class IDA2(MysqlDBSource):
 
 
 class SpecialException(Exception):
+    pass
+
+
+class DBConnectError(Exception):
+    """
+        Исключение при невозможности подключиться к базе данных источника
+    """
     pass

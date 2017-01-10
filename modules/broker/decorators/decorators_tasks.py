@@ -53,7 +53,7 @@ def set_state(func, *args, **kwargs):
             # фиксируем ошибку при выполнении таска
             with transaction.atomic():
                 self.callback_log.state = 'failure'
-                self.callback_log.message = e.message
+                self.callback_log.message = '%s: %s' % (type(e), e.message)
                 self.callback_log.save(update_fields=('state', 'message'))
                 self.callback_log.revoke_task(check_task=True,
                                               task_logger=task_logger)

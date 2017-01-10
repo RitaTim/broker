@@ -16,6 +16,8 @@ from django.apps import AppConfig
 from django.db.utils import ProgrammingError, ConnectionHandler
 from django.conf import settings
 
+from .helpers import get_db_allias_for_source
+
 
 class BrokerAppConfig(AppConfig):
     """
@@ -38,31 +40,33 @@ class BrokerAppConfig(AppConfig):
             inspect.getmembers(broker_sources)
             if getattr(source, 'is_proxy', None) == False
         }
-        module_sources_set = set(module_sources.keys())
+        module_sources_names = set(module_sources.keys())
 
         try:
             # Выбираем источники, которые уже есть в бд
-            db_sources = set(
+            db_sources_names = set(
                 Source.objects.all().values_list('source', flat=True)
             )
 
             # Удаляем источники, которых нет в модуле
-            Source.objects.filter(source__in=(db_sources - module_sources_set)) \
-                .delete()
+            Source.objects.filter(
+                source__in=(db_sources_names - module_sources_names )
+            ).delete()
 
             # Добавляем источники, которых нет в бд
             Source.objects.bulk_create([
                 Source(
-                    source=name_source,
-                    type_source=module_sources[name_source]
-                ) for name_source in (module_sources_set - db_sources)
+                    source=source_name,
+                    type_source=module_sources[source_name]
+                ) for source_name in (module_sources_names - db_sources_names)
             ])
 
             # Определяем список коннекторов к источникам - бд
             db_sources_data = {
-                '{}_source'.format(name).lower(): params
-                for name, params in Source.objects.filter(type_source='db')
-                                          .values_list('source', 'init_params')
+                get_db_allias_for_source(source): params
+                for source, params in Source.objects.filter(type_source='db')
+                                            .values_list('source',
+                                                         'init_params')
             }
             # ConnectionHandler требует наличие дефолтной базы. Но по сути
             # она не будет нам нужна. Поэтому передадим пустое значение
