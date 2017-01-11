@@ -37,12 +37,76 @@ class Source(BaseClass):
                              .format(cls_name))
 
 
+class SqlQuery(object):
+    """
+    Объект Query
+
+    Позволяет сформировать sql строку конкретного типа
+    """
+    def as_select_sql(self, table, where=[], order_by=[], limit=[]):
+        """
+        Возвращает sql строку типа "SELECT" для дальнейшего использования
+        (execute метод)
+
+        :param table: string имя таблицы
+        :param where: list список условий
+        :param order_by: list список сортировки
+            например: ['name', '-price']
+        :param limit: list список ограничений
+            например: [0, 100]
+        :return: string
+        """
+        raise NotImplemented
+
+    def as_update_sql(self, table, value={}, where=[]):
+        """
+        Возвращает sql строку типа "UPDATE" для дальнейшего использования
+        (execute метод)
+
+        :param table: string имя таблицы
+        :param value: словарь значений
+        :param where: list список условий
+        :return: string
+        """
+        raise NotImplemented
+
+    def as_insert_sql(self, table, value={}):
+        """
+        Возвращает sql строку типа "INSERT" для дальнейшего использования
+        (execute метод)
+
+        :param table: string имя таблицы
+        :param value: словарь значений
+        :return: string
+        """
+        raise NotImplemented
+
+    def as_delete_sql(self, table, where=[]):
+        """
+        Возвращает sql строку типа "DELETE" для дальнейшего использования
+        (execute метод)
+
+        :param table: string имя таблицы
+        :param where: list список условий
+        :return: string
+        """
+        raise NotImplemented
+
+
+class MysqlQuery(SqlQuery):
+    """
+    Объект Query для mysql
+    """
+    pass
+
+
 class DataBaseSourse(Source):
     """
         Класс, описывающий тип источника "База данных"
     """
     type_source = "db"
     cursor = None
+    query = SqlQuery()
 
     def __init__(self, *args, **kwargs):
         super(DataBaseSourse, self).__init__(*args, **kwargs)
@@ -53,47 +117,49 @@ class DataBaseSourse(Source):
         except Exception as e:
             raise DBConnectError(e.message)
 
-    def select(self, table, fields=[], order_by=[], where={}):
+    def select(self, *args, **kwargs):
         """
-            Принимает:
+            Выполняет "select" запрос
+
+            В **kwargs передаем:
                 table - имя таблицы
-                fields - список имен необходимых полей вида:
-                    [field1, (field2, alias2), field3]
-                where -
-                order_by - список полей для сортировки вида:
-                    [field1, -field2)]
-                    по умолчанию сортировка по возрастанию
-
-            Формирует sql запрос для select. Возвращает результат выборки
+                where - условия выборки
+                order_by - условия сортировки
+                limit - условия ограничения
         """
-        fields_formated = [
-            "{} as {}".format(field[0], field[1])
-            if isinstance(field, tuple) and len(field) == 2
-            else field for field in fields
-        ]
-
-        query = "SELECT {fields} FROM {table}".format(
-            fields=", ".join(fields_formated),
-            table=table,
-        )
-
-        if where:
-            query += " WHERE {filter_fields}".format(
-                filter_fields=" AND ".join([
-                    "{}{}".format(field, value)
-                    for field, value in where.iteritems()
-                ])
-            )
-
-        if order_by:
-            order_by_qs = ", ".join([
-                "{} DESC".format(field[1:])
-                if field[0] == '-' else field for field in order_by
-            ])
-            query += " ORDER BY {}".format(order_by_qs)
-
-        self.cursor.execute(query)
+        self.cursor.execute(self.query.as_select_sql(*args, **kwargs))
         return self.cursor.fetchall()
+
+    def update(self, *args, **kwargs):
+        """
+            Выполняет "update" запрос
+
+            В **kwargs передаем:
+                table - имя таблицы
+                value - устанавливаемые значения
+                where - условия выборки
+        """
+        return self.cursor.execute(self.query.as_update_sql(*args, **kwargs))
+
+    def insert(self, *args, **kwargs):
+        """
+            Выполняет "insert" запрос
+
+            В **kwargs передаем:
+                table - имя таблицы
+                value - сохраняемые значения
+        """
+        return self.cursor.execute(self.query.as_insert_sql(*args, **kwargs))
+
+    def delete(self, *args, **kwargs):
+        """
+            Выполняет "delete" запрос
+
+            В **kwargs передаем:
+                table - имя таблицы
+                where - условия выборки
+        """
+        return self.cursor.execute(self.query.as_delete_sql(*args, **kwargs))
 
 
 class MysqlDBSource(DataBaseSourse):
@@ -125,6 +191,7 @@ class KmClient(MysqlDBSource):
         Класс источника KmClient
     """
     is_proxy = False
+    query = MysqlQuery()
 
     def __init__(self, *args, **kwargs):
         super(KmClient, self).__init__(*args, **kwargs)
@@ -133,58 +200,9 @@ class KmClient(MysqlDBSource):
     def km_signal_1(self):
         pass
 
-    @signal()
-    def km_signal_2(self):
-        pass
-
-    def km_signal_3(self):
-        pass
-
     @callback
     def km_callback_1(self, *args, **kwargs):
         pass
-
-
-class IDA2(MysqlDBSource):
-    """
-        Класс источника IDA2
-    """
-    is_proxy = False
-
-    def __init__(self, *args, **kwargs):
-        super(IDA2, self).__init__(*args, **kwargs)
-
-    @signal()
-    def ida_signal_1(self):
-        pass
-
-    def ida_signal_2(self):
-        pass
-
-    @callback
-    def ida_callback_1(self, *args, **kwargs):
-        # Работать с бд источника можно через ее коннектор
-        self.select(
-            fields=['testcol1', 't3'],
-            table="test",
-            where={'testcol1': '>40', 't3': '="sven"'},
-            order_by=['-testcol1']
-        )
-
-        import random
-        fortuna = random.randint(0, 100)
-        print 'ida_callback_1 - {0}'.format(fortuna)
-        if fortuna <= 60:
-            raise SpecialException('ha ha ha HA')
-        return 'All is well!'
-
-    @callback
-    def ida_callback_2(self, *args, **kwargs):
-        print 'ida_callback_2'
-
-
-class SpecialException(Exception):
-    pass
 
 
 class DBConnectError(Exception):
