@@ -53,6 +53,48 @@ class DataBaseSourse(Source):
         except Exception as e:
             raise DBConnectError(e.message)
 
+    def select(self, table, fields=[], order_by=[], where={}):
+        """
+            Принимает:
+                table - имя таблицы
+                fields - список имен необходимых полей вида:
+                    [field1, (field2, alias2), field3]
+                where -
+                order_by - список полей для сортировки вида:
+                    [field1, -field2)]
+                    по умолчанию сортировка по возрастанию
+
+            Формирует sql запрос для select. Возвращает результат выборки
+        """
+        fields_formated = [
+            "{} as {}".format(field[0], field[1])
+            if isinstance(field, tuple) and len(field) == 2
+            else field for field in fields
+        ]
+
+        query = "SELECT {fields} FROM {table}".format(
+            fields=", ".join(fields_formated),
+            table=table,
+        )
+
+        if where:
+            query += " WHERE {filter_fields}".format(
+                filter_fields=" AND ".join([
+                    "{}{}".format(field, value)
+                    for field, value in where.iteritems()
+                ])
+            )
+
+        if order_by:
+            order_by_qs = ", ".join([
+                "{} DESC".format(field[1:])
+                if field[0] == '-' else field for field in order_by
+            ])
+            query += " ORDER BY {}".format(order_by_qs)
+
+        self.cursor.execute(query)
+        return self.cursor.fetchall()
+
 
 class MysqlDBSource(DataBaseSourse):
     """
@@ -122,9 +164,12 @@ class IDA2(MysqlDBSource):
     @callback
     def ida_callback_1(self, *args, **kwargs):
         # Работать с бд источника можно через ее коннектор
-        cursor = self.cursor
-        cursor.execute("SELECT * FROM test")
-        print(cursor.fetchall())
+        self.select(
+            fields=['testcol1', 't3'],
+            table="test",
+            where={'testcol1': '>40', 't3': '="sven"'},
+            order_by=['-testcol1']
+        )
 
         import random
         fortuna = random.randint(0, 100)
