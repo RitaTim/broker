@@ -64,6 +64,3 @@ COUNTDOWN_RETRIES_DEFAULT = 30
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp1.km-union.ru'
-
-ONE_C_WSDL_DEFAULT = 'http://sr-1c-devel.km-union.ru/Trade-W/ws/kmclient.1cws' \
-                     '?wsdl'

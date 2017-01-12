@@ -118,11 +118,12 @@ class Wsdl(Source):
         super(Wsdl, self).__init__(*args, **kwargs)
         init_params = self.source_model.init_params
         try:
-            url = init_params.pop('url', settings.ONE_C_WSDL_DEFAULT)
+            url = init_params.pop('url')
             self.wsdl_client = Client(url, **init_params)
-        except (WebFault, Exception) as e:
+        except KeyError as e:
             raise WsdlConnectError(
-                "{} Check 'init_params' wsdl source".format(e.message)
+                u"В параметрах wsdl источника {} не указан 'url'"
+                .format(self.__class__.__name__)
             )
 
 """ Инстансы источников """
@@ -130,7 +131,7 @@ class Wsdl(Source):
 
 class OneSWsdl(Wsdl):
     """
-        База 1с
+        Доступ к wsdl серверу
     """
     is_proxy = False
 
@@ -231,6 +232,6 @@ class DBConnectError(Exception):
 
 class WsdlConnectError(Exception):
     """
-        Исключение при невозможности подключиться к базе через wsdl
+        Исключение при невозможности подключиться к wsdl серверу
     """
     pass
