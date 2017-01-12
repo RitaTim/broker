@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.conf import settings
+from django.template import Template, Context
 
 from broker.decorators.decorators import signal, callback
 from broker.meta import BaseClassMeta
@@ -43,12 +44,32 @@ class SqlQuery(object):
 
     Позволяет сформировать sql строку конкретного типа
     """
-    def as_select_sql(self, table, where=[], order_by=[], limit=[]):
+
+    def as_sql(self, template, params={}):
+        """
+        Возращает sql строку по ее типу
+        :param template: string тип запроса
+        :param params: dict параметры запроса
+        :return: string
+        """
+        tmpl = Template(self.templates[template])
+        return tmpl.render(Context(params))
+
+    def prepare_condition(self, where):
+        """
+        Преобразует where в набор условий
+        :param where:
+        :return:
+        """
+        return where
+
+    def as_select_sql(self, table, fields=[], where=[], order_by=[], limit=[]):
         """
         Возвращает sql строку типа "SELECT" для дальнейшего использования
         (execute метод)
 
         :param table: string имя таблицы
+        :param fields: list список полей
         :param where: list список условий
         :param order_by: list список сортировки
             например: ['name', '-price']
@@ -97,7 +118,46 @@ class MysqlQuery(SqlQuery):
     """
     Объект Query для mysql
     """
-    pass
+    templates = {
+        'select': """SELECT
+        {% if fields %}
+        {% load sql %}
+        {% for field, alias in fields|prepare_fields %}
+          `{{ field }}` as `{{ alias }}`{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+        {% else %}
+          *
+        {% endif %}
+        FROM `{{ table }}`
+        WHERE 1 = 1
+        {% if order_by %}
+          ORDER BY {% for order in order_by %} {% if order|first == "-" %}`{{ order|slice:"1:" }}` DESC{% else %}`{{ order }}` ASC{% endif %}{% if not forloop.last %}, {% endif %} {% endfor %}
+        {% endif %}
+        {% if limit %}
+          LIMIT {{ limit.0 }}, {{ limit.1 }}
+        {% endif %}
+        """,
+    }
+
+    def as_select_sql(self, table, **kwargs):
+        """
+        Возвращает sql строку типа "SELECT"
+
+        :param table: string имя таблицы
+        :param fields: list список полей
+        :param where: list список условий
+        :param order_by: list список сортировки
+            например: ['name', '-price']
+        :param limit: list список ограничений
+            например: [0, 100]
+        :return: string
+        """
+        params = {
+            'table': table,
+            'where': self.prepare_condition(kwargs.pop('where', None))
+        }
+        params.update(kwargs)
+        return self.as_sql('select', params)
 
 
 class DataBaseSourse(Source):
@@ -123,6 +183,7 @@ class DataBaseSourse(Source):
 
             В **kwargs передаем:
                 table - имя таблицы
+                fields - список полей
                 where - условия выборки
                 order_by - условия сортировки
                 limit - условия ограничения
@@ -168,10 +229,6 @@ class MysqlDBSource(DataBaseSourse):
     """
     def __init__(self, *args, **kwargs):
         super(MysqlDBSource, self).__init__(*args, **kwargs)
-        # определяем параметры источника - mysql БД
-
-
-""" Инстансы источников """
 
 
 class Wsdl(Source):
