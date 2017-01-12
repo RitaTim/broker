@@ -147,10 +147,12 @@ class OneSWsdl(Wsdl):
                 'email': <e-mail>
             }
         """
-        return self.wsdl_client.service.ReportEquipmentRepairStatus2(
+        result = self.wsdl_client.service.ReportEquipmentRepairStatus2(
             kwargs['task_id'], kwargs['uuid'], kwargs['start_date'],
             kwargs['end_date'], kwargs['email']
         )
+        result['return'] = result['return'].decode('hex')
+        return dict(result)
 
 
 class KmClient(MysqlDBSource):

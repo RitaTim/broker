@@ -128,8 +128,8 @@ def retry_task(func, *args, **kwargs):
     def wrapper(self, callback_log_id, *args_callback, **kwargs_callback):
         max_retries = self.callback_log.params.get('max_retries', 0)
         if not max_retries:
-            func(self, callback_log_id, *args_callback, **kwargs_callback)
-            return
+            return func(self, callback_log_id, *args_callback,
+                        **kwargs_callback)
         # если все же задано максимальное количество повторов
         exceptions_paths_list = self.callback_log.params.get(
             'exceptions_list_retries', [])

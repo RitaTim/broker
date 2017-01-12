@@ -89,5 +89,6 @@ def receive_signal(self, callback_log_id, *args, **kwargs):
     callback = getattr(destination_instance, callback_log.callback)
     if callable(callback):
         return callback(*args, **kwargs)
+
     task_logger.warning(u'Обработчик "{0}" не является методом'.format(
         callback_log.callback))
