@@ -126,6 +126,8 @@ CELERY_QUEUES = (
 
 BROKER_URL = None
 
+ONE_C_WSDL_DEFAULT = 'http://wsdl-1c.km-union.ru/ws/kmclient.1cws?wsdl'
+
 from settings_local import *
 
 if not BROKER_URL:

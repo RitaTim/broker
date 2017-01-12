@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from suds.client import Client, WebFault
+
 from django.conf import settings
 
 from broker.decorators.decorators import signal, callback
@@ -105,19 +107,50 @@ class MysqlDBSource(DataBaseSourse):
         # определяем параметры источника - mysql БД
 
 
-""" Инстансы источников """
-
-
 class Wsdl(Source):
     """
         Класс источника Wsdl
     """
     type_source = "wsdl"
-
-    is_proxy = False
+    wsdl_client = None
 
     def __init__(self, *args, **kwargs):
         super(Wsdl, self).__init__(*args, **kwargs)
+        init_params = self.source_model.init_params
+        try:
+            url = init_params.pop('url', settings.ONE_C_WSDL_DEFAULT)
+            self.wsdl_client = Client(url, **init_params)
+        except (WebFault, Exception) as e:
+            raise WsdlConnectError(
+                "{} Check 'init_params' wsdl source".format(e.message)
+            )
+
+""" Инстансы источников """
+
+
+class OneSWsdl(Wsdl):
+    """
+        База 1с
+    """
+    is_proxy = False
+
+    @callback
+    def get_report_equipment_repair_status(self, *args, **kwargs):
+        """
+            Возвращает отчет о статусе ремонта оборудования
+            В kwargs должны быть следующие параметры:
+            {
+                'task_id': <id отчета>
+                'uuid': <uuid отчета>,
+                'start_date': <дата создания>,
+                'end_date': <дата получения>,
+                'email': <e-mail>
+            }
+        """
+        return self.wsdl_client.service.ReportEquipmentRepairStatus2(
+            kwargs['task_id'], kwargs['uuid'], kwargs['start_date'],
+            kwargs['end_date'], kwargs['email']
+        )
 
 
 class KmClient(MysqlDBSource):
@@ -190,5 +223,12 @@ class SpecialException(Exception):
 class DBConnectError(Exception):
     """
         Исключение при невозможности подключиться к базе данных источника
+    """
+    pass
+
+
+class WsdlConnectError(Exception):
+    """
+        Исключение при невозможности подключиться к базе через wsdl
     """
     pass

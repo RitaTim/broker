@@ -4,3 +4,4 @@ celery<=3.2
 django-debug-toolbar==1.6
 redis
 psycopg2
+suds-jurko<0.7
