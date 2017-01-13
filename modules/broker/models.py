@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from django.conf import settings
 from django.db import models
 from django.db.models.signals import pre_save
-from django.db.backends.mysql.base import DatabaseWrapper
 from django.dispatch import receiver
 from django.contrib.postgres.fields import JSONField
+from django.core.cache import cache
 
 from .helpers import get_db_allias_for_source
 
@@ -22,6 +21,23 @@ class Source(models.Model):
     def __unicode__(self):
         return self.source
 
+    def get_init_params(self):
+        """
+           Возвращает параметры источника из кэша или из базы
+        """
+        try:
+            connections_sources = cache.get('CONNECTIONS_SOURCES')
+            return connections_sources[self.source]
+        except KeyError:
+            return self.init_params
+
+    @property
+    def db_alias(self):
+        """
+            Возвращает alias базы данных источника
+        """
+        return get_db_allias_for_source(self.source)
+
 
 @receiver(pre_save, sender=Source)
 def pre_save_source(sender, instance, **kwargs):
@@ -36,11 +52,10 @@ def pre_save_source(sender, instance, **kwargs):
         return
 
     if old_instance.init_params != instance.init_params:
-        # Обновляем текущий коннектор
-        db_alias = get_db_allias_for_source(instance.source)
-        settings.CONNECTIONS_SOURCES[db_alias] = DatabaseWrapper(
-            instance.init_params
-        )
+        # Обновляем закэшированные настройки бд
+        connections_sources = cache.get('CONNECTIONS_SOURCES', {})
+        connections_sources[instance.db_alias] = instance.init_params
+        cache.set('CONNECTIONS_SOURCES', connections_sources)
 
 
 class Rule(models.Model):

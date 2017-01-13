@@ -126,6 +126,19 @@ CELERY_QUEUES = (
 
 BROKER_URL = None
 
+CACHES = {
+   "default": {
+       "BACKEND": "django_redis.cache.RedisCache",
+       "LOCATION": "redis://127.0.0.1:6379/1",
+       "OPTIONS": {
+           "CLIENT_CLASS": "django_redis.client.DefaultClient",
+       }
+   }
+}
+
+# Время кэширования параметров баз данных источников
+DB_SOURCES_CACHE_TIME = 15 * 60
+
 from settings_local import *
 
 if not BROKER_URL:
@@ -154,4 +167,3 @@ if DEBUG:
         MIDDLEWARE_CLASSES[1:-1]
     )
 
-CONNECTIONS_SOURCES = None

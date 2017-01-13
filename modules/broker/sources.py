@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from django.conf import settings
-from django.template import Template, Context, loader
+import MySQLdb
+
+from django.template import loader
 from django.db.models import Q
 
 from broker.decorators.decorators import signal, callback
 from broker.meta import BaseClassMeta
 from .models import Source as SourceModel
-from .helpers import get_db_allias_for_source
 
 
 class BaseClass(object):
@@ -279,10 +279,17 @@ class DataBaseSourse(Source):
         super(DataBaseSourse, self).__init__(*args, **kwargs)
         # определяем параметры источника - БД
         try:
-            db_alias = get_db_allias_for_source(self.source_model.source)
-            self.cursor = settings.CONNECTIONS_SOURCES[db_alias].cursor()
+            # Инициализируем cursor для работы с бд
+            self.cursor = self.get_cursor(self.source_model.get_init_params())
         except Exception as e:
             raise DBConnectError(e.message)
+
+    def get_cursor(self, params={}):
+        """
+        Возвращает указатель бд
+        :return: Cursor
+        """
+        raise NotImplemented
 
     def select(self, *args, **kwargs):
         """
@@ -336,6 +343,15 @@ class MysqlDBSource(DataBaseSourse):
     """
     def __init__(self, *args, **kwargs):
         super(MysqlDBSource, self).__init__(*args, **kwargs)
+
+    def get_cursor(self, params={}):
+        """
+        Возвращает указатель для mysql бд
+        :param params: параметры бд для подключения
+        :return: Cursor
+        """
+        connect = MySQLdb.connect(**params)
+        return connect.cursor()
 
 
 class Wsdl(Source):

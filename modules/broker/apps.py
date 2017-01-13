@@ -13,8 +13,9 @@ import inspect
 import warnings
 
 from django.apps import AppConfig
-from django.db.utils import ProgrammingError, ConnectionHandler
+from django.db.utils import ProgrammingError
 from django.conf import settings
+from django.core.cache import cache
 
 from .helpers import get_db_allias_for_source
 
@@ -68,12 +69,10 @@ class BrokerAppConfig(AppConfig):
                                             .values_list('source',
                                                          'init_params')
             }
-            # ConnectionHandler требует наличие дефолтной базы. Но по сути
-            # она не будет нам нужна. Поэтому передадим пустое значение
-            db_sources_data['default'] = {}
-            settings.CONNECTIONS_SOURCES = ConnectionHandler(
-                databases=db_sources_data
+            # Кэшируем параметры источников БД
+            cache.set(
+                'CONNECTIONS_SOURCES', db_sources_data,
+                 settings.DB_SOURCES_CACHE_TIME
             )
-
         except ProgrammingError:
             warnings.warn('Only if deployed')
