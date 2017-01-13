@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from django.conf import settings
 from django.db import models
+from django.db.models.signals import pre_save
+from django.db.backends.mysql.base import DatabaseWrapper
+from django.dispatch import receiver
 from django.contrib.postgres.fields import JSONField
+
+from .helpers import get_db_allias_for_source
 
 
 class Source(models.Model):
@@ -15,6 +21,26 @@ class Source(models.Model):
 
     def __unicode__(self):
         return self.source
+
+
+@receiver(pre_save, sender=Source)
+def pre_save_source(sender, instance, **kwargs):
+    """
+        Обновляет коннектор бд источника,
+        в случае если изменились его параметры
+    """
+    try:
+        old_instance = Source.objects.get(pk=instance.pk)
+    except Source.DoesNotExist:
+        # При добавлении элемента ничего не делаем
+        return
+
+    if old_instance.init_params != instance.init_params:
+        # Обновляем текущий коннектор
+        db_alias = get_db_allias_for_source(instance.source)
+        settings.CONNECTIONS_SOURCES[db_alias] = DatabaseWrapper(
+            instance.init_params
+        )
 
 
 class Rule(models.Model):
