@@ -1,0 +1,24 @@
+SELECT
+{% if fields %}
+    {% load sql %}
+    {% for field, alias in fields|prepare_fields %}
+        `{{ field }}` as `{{ alias }}`{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+    {% else %}
+      *
+{% endif %}
+FROM `{{ table }}`
+{% if conditions %}
+    {% autoescape off %}
+        WHERE {{ conditions }}
+    {% endautoescape %}
+{% endif %}
+{% if order_by %}
+    ORDER BY
+    {% for order in order_by %}
+        {% if order|first == "-" %}`{{ order|slice:"1:" }}` DESC{% else %}`{{ order }}` ASC{% endif %}{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+{% endif %}
+{% if limit %}
+  LIMIT {{ limit.0 }}, {{ limit.1 }}
+{% endif %}

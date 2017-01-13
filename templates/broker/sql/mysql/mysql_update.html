@@ -1,0 +1,11 @@
+UPDATE `{{ table }}`
+SET
+{% for field, value in values.items %}
+    `{{ field }}`="{{ value }}"{% if not forloop.last %}, {% endif %}
+{% endfor %}
+
+{% if conditions %}
+    {% autoescape off %}
+        WHERE {{ conditions }}
+    {% endautoescape %}
+{% endif %}

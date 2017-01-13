@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.conf import settings
-from django.template import Template, Context
+from django.template import Template, Context, loader
 from django.db.models import Q
 
 from broker.decorators.decorators import signal, callback
@@ -45,15 +45,15 @@ class SqlQuery(object):
     Позволяет сформировать sql строку конкретного типа
     """
 
-    def as_sql(self, template, params={}):
+    def as_sql(self, template_name, params={}):
         """
         Возращает sql строку по ее типу
         :param template: string тип запроса
         :param params: dict параметры запроса
         :return: string
         """
-        tmpl = Template(self.templates[template])
-        return tmpl.render(Context(params))
+        tmpl = loader.get_template(template_name)
+        return tmpl.render(params)
 
     def __convert_q_object_to_list(self, q_object):
         """
@@ -133,7 +133,7 @@ class SqlQuery(object):
         """
         raise NotImplemented
 
-    def as_update_sql(self, table=None, value={}, where=[]):
+    def as_update_sql(self, table=None, values={}, where=[]):
         """
         Возвращает sql строку типа "UPDATE" для дальнейшего использования
         (execute метод)
@@ -145,7 +145,7 @@ class SqlQuery(object):
         """
         raise NotImplemented
 
-    def as_insert_sql(self, table=None, value={}):
+    def as_insert_sql(self, table=None, values={}):
         """
         Возвращает sql строку типа "INSERT" для дальнейшего использования
         (execute метод)
@@ -188,30 +188,8 @@ class MysqlQuery(SqlQuery):
         'lte': '<=',
     }
     # SQL шаблоны под каждый тип запроса
-    templates = {
-        'select': """SELECT
-        {% if fields %}
-        {% load sql %}
-        {% for field, alias in fields|prepare_fields %}
-          `{{ field }}` as `{{ alias }}`{% if not forloop.last %}, {% endif %}
-        {% endfor %}
-        {% else %}
-          *
-        {% endif %}
-        FROM `{{ table }}`
-        {% if conditions %}
-        {% autoescape off %}
-          WHERE {{ conditions }}
-        {% endautoescape %}
-        {% endif %}
-        {% if order_by %}
-          ORDER BY {% for order in order_by %} {% if order|first == "-" %}`{{ order|slice:"1:" }}` DESC{% else %}`{{ order }}` ASC{% endif %}{% if not forloop.last %}, {% endif %} {% endfor %}
-        {% endif %}
-        {% if limit %}
-          LIMIT {{ limit.0 }}, {{ limit.1 }}
-        {% endif %}
-        """,
-    }
+    select_template = "broker/sql/mysql/mysql_select.html"
+    update_template = "broker/sql/mysql/mysql_update.html"
 
     def __condition_as_sql(self, conditions):
         """
@@ -267,7 +245,26 @@ class MysqlQuery(SqlQuery):
             )
         }
         params.update(kwargs)
-        return self.as_sql('select', params)
+        return self.as_sql(self.select_template, params)
+
+    def as_update_sql(self, *args, **kwargs):
+        """
+        Возвращает sql строку типа "UPDATE"
+
+        :param table: string имя таблицы
+        :param values: dict обновляемых полей типа:
+            {'field1': 'value1', 'field2': 'value2'}
+        :param where: Q object or dict
+            допускается передача в виде объектов Q или словаря, который будет
+            преобразован в соответствующий Q(...)
+        """
+        params = {
+            'conditions': self.__condition_as_sql(
+                self.prepare_condition(kwargs.pop('where', None))
+            )
+        }
+        params.update(kwargs)
+        return self.as_sql(self.update_template, params)
 
 
 class DataBaseSourse(Source):
