@@ -1,0 +1,11 @@
+INSERT
+INTO `{{ table }}` (
+    {% for field in fields %}
+        {{ field }} {% if not forloop.last %}, {% endif %}
+    {% endfor %}
+)
+VALUES (
+    {% for value in values %}
+        "{{ value }}" {% if not forloop.last %}, {% endif %}
+    {% endfor %}
+)

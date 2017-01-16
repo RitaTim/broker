@@ -190,6 +190,7 @@ class MysqlQuery(SqlQuery):
     # SQL шаблоны под каждый тип запроса
     select_template = "broker/sql/mysql/mysql_select.html"
     update_template = "broker/sql/mysql/mysql_update.html"
+    insert_template = "broker/sql/mysql/mysql_insert.html"
 
     def __condition_as_sql(self, conditions):
         """
@@ -266,6 +267,22 @@ class MysqlQuery(SqlQuery):
         params.update(kwargs)
         return self.as_sql(self.update_template, params)
 
+    def as_insert_sql(self, *args, **kwargs):
+        """
+        Возвращает sql строку типа "INSERT"
+
+        :param table: string имя таблицы
+        :param data: dict добавляемых полей типа:
+            {'field1': 'value1', 'field2': 'value2'}
+        """
+        data = kwargs.pop('data', {})
+        params = {
+            'fields': data.keys(),
+            'values': data.values()
+        }
+        params.update(kwargs)
+        return self.as_sql(self.insert_template, params)
+
 
 class DataBaseSourse(Source):
     """
@@ -329,7 +346,8 @@ class DataBaseSourse(Source):
                 table - имя таблицы
                 value - сохраняемые значения
         """
-        return self.cursor.execute(self.query.as_insert_sql(*args, **kwargs))
+        self.cursor.execute(self.query.as_insert_sql(*args, **kwargs))
+        self.connector.commit()
 
     def delete(self, *args, **kwargs):
         """
