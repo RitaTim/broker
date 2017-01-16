@@ -272,6 +272,7 @@ class DataBaseSourse(Source):
         Класс, описывающий тип источника "База данных"
     """
     type_source = "db"
+    connector = None
     cursor = None
     query = SqlQuery()
 
@@ -279,15 +280,18 @@ class DataBaseSourse(Source):
         super(DataBaseSourse, self).__init__(*args, **kwargs)
         # определяем параметры источника - БД
         try:
-            # Инициализируем cursor для работы с бд
-            self.cursor = self.get_cursor(self.source_model.get_init_params())
+            # Инициализируем connector для работы с бд
+            self.connector = self.get_connector(
+                self.source_model.get_init_params()
+            )
+            self.cursor = self.connector.cursor()
         except Exception as e:
             raise DBConnectError(e.message)
 
-    def get_cursor(self, params={}):
+    def get_connector(self, params={}):
         """
-        Возвращает указатель бд
-        :return: Cursor
+        Возвращает connector к бд
+        :return: Connection
         """
         raise NotImplemented
 
@@ -314,7 +318,8 @@ class DataBaseSourse(Source):
                 value - устанавливаемые значения
                 where - условия выборки
         """
-        return self.cursor.execute(self.query.as_update_sql(*args, **kwargs))
+        self.cursor.execute(self.query.as_update_sql(*args, **kwargs))
+        self.connector.commit()
 
     def insert(self, *args, **kwargs):
         """
@@ -344,14 +349,13 @@ class MysqlDBSource(DataBaseSourse):
     def __init__(self, *args, **kwargs):
         super(MysqlDBSource, self).__init__(*args, **kwargs)
 
-    def get_cursor(self, params={}):
+    def get_connector(self, params={}):
         """
-        Возвращает указатель для mysql бд
+        Возвращает коннектор к бд MySQL
         :param params: параметры бд для подключения
-        :return: Cursor
+        :return: Connection
         """
-        connect = MySQLdb.connect(**params)
-        return connect.cursor()
+        return MySQLdb.connect(**params)
 
 
 class Wsdl(Source):
