@@ -188,9 +188,9 @@ class MysqlQuery(SqlQuery):
         'lte': '<=',
     }
     # SQL шаблоны под каждый тип запроса
-    select_template = "broker/sql/mysql/mysql_select.html"
-    update_template = "broker/sql/mysql/mysql_update.html"
-    insert_template = "broker/sql/mysql/mysql_insert.html"
+    select_template = "broker/sql/mysql/select.html"
+    update_template = "broker/sql/mysql/update.html"
+    insert_template = "broker/sql/mysql/insert.html"
 
     def __condition_as_sql(self, conditions):
         """
@@ -272,13 +272,14 @@ class MysqlQuery(SqlQuery):
         Возвращает sql строку типа "INSERT"
 
         :param table: string имя таблицы
-        :param data: dict добавляемых полей типа:
-            {'field1': 'value1', 'field2': 'value2'}
+        :param fields: list список имен полей
+        :param value: list список значений полей
+        :param values: list список value (при добавлении нескольких строк):
+            [['value1', 'value2'], ['value3', 'value4']]
         """
-        data = kwargs.pop('data', {})
         params = {
-            'fields': data.keys(),
-            'values': data.values()
+            'fields': kwargs.pop('fields', []),
+            'rows': kwargs.pop('values', []) or [kwargs.pop('value', {})]
         }
         params.update(kwargs)
         return self.as_sql(self.insert_template, params)
@@ -301,7 +302,6 @@ class DataBaseSourse(Source):
             self.connector = self.get_connector(
                 self.source_model.get_init_params()
             )
-            self.cursor = self.connector.cursor()
         except Exception as e:
             raise DBConnectError(e.message)
 
@@ -323,8 +323,11 @@ class DataBaseSourse(Source):
                 order_by - условия сортировки
                 limit - условия ограничения
         """
-        self.cursor.execute(self.query.as_select_sql(*args, **kwargs))
-        return self.cursor.fetchall()
+        cursor = self.connector.cursor()
+        cursor.execute(
+            self.query.as_select_sql(*args, **kwargs)
+        )
+        return cursor.fetchall()
 
     def update(self, *args, **kwargs):
         """
@@ -335,7 +338,9 @@ class DataBaseSourse(Source):
                 value - устанавливаемые значения
                 where - условия выборки
         """
-        self.cursor.execute(self.query.as_update_sql(*args, **kwargs))
+        self.connector.cursor().execute(
+            self.query.as_update_sql(*args, **kwargs)
+        )
         self.connector.commit()
 
     def insert(self, *args, **kwargs):
@@ -346,7 +351,9 @@ class DataBaseSourse(Source):
                 table - имя таблицы
                 value - сохраняемые значения
         """
-        self.cursor.execute(self.query.as_insert_sql(*args, **kwargs))
+        self.connector.cursor().execute(
+            self.query.as_insert_sql(*args, **kwargs)
+        )
         self.connector.commit()
 
     def delete(self, *args, **kwargs):

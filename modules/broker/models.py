@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.db import models
+from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.contrib.postgres.fields import JSONField
@@ -26,8 +27,8 @@ class Source(models.Model):
            Возвращает параметры источника из кэша или из базы
         """
         try:
-            connections_sources = cache.get('CONNECTIONS_SOURCES')
-            return connections_sources[self.source]
+            connections_sources = cache.get(settings.CONNECTIONS_SOURCES_KEY)
+            return connections_sources[self.db_alias]
         except KeyError:
             return self.init_params
 
@@ -45,17 +46,14 @@ def pre_save_source(sender, instance, **kwargs):
         Обновляет коннектор бд источника,
         в случае если изменились его параметры
     """
-    try:
-        old_instance = Source.objects.get(pk=instance.pk)
-    except Source.DoesNotExist:
-        # При добавлении элемента ничего не делаем
+    if not (hasattr(instance, 'pk') and instance.type_source == 'db'):
         return
 
-    if old_instance.init_params != instance.init_params:
-        # Обновляем закэшированные настройки бд
-        connections_sources = cache.get('CONNECTIONS_SOURCES', {})
-        connections_sources[instance.db_alias] = instance.init_params
-        cache.set('CONNECTIONS_SOURCES', connections_sources)
+    # Обновляем закэшированные настройки бд
+    connections_sources = cache.get(settings.CONNECTIONS_SOURCES_KEY, {})
+    connections_sources[instance.db_alias] = instance.init_params
+    cache.set(settings.CONNECTIONS_SOURCES_KEY, connections_sources,
+              settings.DB_SOURCES_CACHE_TIME)
 
 
 class Rule(models.Model):

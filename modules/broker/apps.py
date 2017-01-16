@@ -71,7 +71,7 @@ class BrokerAppConfig(AppConfig):
             }
             # Кэшируем параметры источников БД
             cache.set(
-                'CONNECTIONS_SOURCES', db_sources_data,
+                 settings.CONNECTIONS_SOURCES_KEY, db_sources_data,
                  settings.DB_SOURCES_CACHE_TIME
             )
         except ProgrammingError:
