@@ -33,7 +33,7 @@ class BrokerAppConfig(AppConfig):
             в соответствии с полученным списком обновляет таблицу бд
         """
         from models import Source
-        from broker import sources as broker_sources
+        from broker.sources import sources as broker_sources
 
         # Получаем список имен источников модуля и их типы
         module_sources = {

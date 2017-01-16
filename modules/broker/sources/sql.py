@@ -1,41 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import MySQLdb
-
-from django.template import loader
 from django.db.models import Q
+from django.template import loader
 
-from broker.decorators.decorators import signal, callback
-from broker.meta import BaseClassMeta
-from .models import Source as SourceModel
-
-
-class BaseClass(object):
-    """
-        Базовый класс
-    """
-    __metaclass__ = BaseClassMeta
-
-    # По умолчанию, класс является промежуточным звеном между инстансом и
-    # базовым классом. В классе реального источника, нужно установить False
-    is_proxy = True
-
-
-class Source(BaseClass):
-    """
-        Базовый класс для всех источников
-    """
-    type_source = None
-    source_model = None
-
-    def __init__(self, *args, **kwargs):
-        super(Source, self).__init__()
-        cls_name = self.__class__.__name__
-        try:
-            self.source_model = SourceModel.objects.get(source=cls_name)
-        except SourceModel.DoesNotExist:
-            raise ValueError("Source '{}' not has object of model"
-                             .format(cls_name))
+from broker.sources.exceptions import MysqlQueryException
 
 
 class SqlQuery(object):
@@ -63,7 +31,8 @@ class SqlQuery(object):
         ('field1', 'gt', 10), 'AND', ('field2', 'lt', 20), а
         Q(Q(field1__gt=10) | Q(field2__lte=20)) & Q(field3=0) соответственно в
 
-        (('field1', 'gt', 10), 'OR', ('field2', 'lt', 20)), 'AND', ('field3', '', 0)
+        (('field1', 'gt', 10), 'OR', ('field2', 'lt', 20)), 'AND',
+        ('field3', '', 0)
 
         :param q_object: Q
         :return: tuple
@@ -72,7 +41,8 @@ class SqlQuery(object):
         # элемент Q(Q(field1__gt=10) | Q(field2__lte=20)) & Q(field3=0)
         # представляется в виде
         # {
-        #   'children': [<Q: (OR: ('field1__gt', 10), ('field2__lte', 20))>, ('field3', 0)],
+        #   'children': [<Q: (OR: ('field1__gt', 10),
+        #                ('field2__lte', 20))>, ('field3', 0)],
         #   'connector': u'AND',
         #   'negated': False
         # }
@@ -104,7 +74,8 @@ class SqlQuery(object):
         condition = tuple()
         if where:
             # {
-            #   'children': [<Q: (OR: ('field1__gt', 10), ('field2__lte', 20))>, ('field3', 0)],
+            #   'children': [<Q: (OR: ('field1__gt', 10),
+            #                ('field2__lte', 20))>, ('field3', 0)],
             #   'connector': u'AND',
             #   'negated': False
             # }
@@ -168,13 +139,6 @@ class SqlQuery(object):
         raise NotImplemented
 
 
-class MysqlQueryException(Exception):
-    """
-    Возникает при формировании Mysql запроса
-    """
-    pass
-
-
 class MysqlQuery(SqlQuery):
     """
     Объект Query для mysql
@@ -196,8 +160,10 @@ class MysqlQuery(SqlQuery):
         """
         Преобразует кортеж условий в строку sql
 
-        кортеж (('field1', 'gt', 10), 'OR', ('field2', 'lt', 20)), 'AND', ('field3', '', 0)
-        будет преобразован в ((`field1` > 10) OR (`field2` < 20)) AND (field3 = 0)
+        кортеж (('field1', 'gt', 10), 'OR', ('field2', 'lt', 20)), 'AND',
+               ('field3', '', 0)
+        будет преобразован в ((`field1` > 10) OR (`field2` < 20)) AND
+                             (field3 = 0)
 
         :param conditions: tuple условий
         :return: string
@@ -207,7 +173,8 @@ class MysqlQuery(SqlQuery):
         for condition in conditions:
             if isinstance(condition, (list, tuple)):
                 if connectors & set(condition):
-                    sql += u' ( {0} ) '.format(self.__condition_as_sql(condition))
+                    sql += u' ( {0} ) '\
+                           .format(self.__condition_as_sql(condition))
                 else:
                     try:
                         sql += u' (`{0}` {1} "{2}") '.format(
@@ -278,144 +245,9 @@ class MysqlQuery(SqlQuery):
             [['value1', 'value2'], ['value3', 'value4']]
         """
         params = {
-            'fields': kwargs.pop('fields', []),
-            'rows': kwargs.pop('values', []) or [kwargs.pop('value', {})]
+            'fields': kwargs.get('fields', []),
+            'rows': [kwargs['value']] if kwargs.get('value')
+                    else kwargs.get('values', [])
         }
         params.update(kwargs)
         return self.as_sql(self.insert_template, params)
-
-
-class DataBaseSourse(Source):
-    """
-        Класс, описывающий тип источника "База данных"
-    """
-    type_source = "db"
-    connector = None
-    cursor = None
-    query = SqlQuery()
-
-    def __init__(self, *args, **kwargs):
-        super(DataBaseSourse, self).__init__(*args, **kwargs)
-        # определяем параметры источника - БД
-        try:
-            # Инициализируем connector для работы с бд
-            self.connector = self.get_connector(
-                self.source_model.get_init_params()
-            )
-        except Exception as e:
-            raise DBConnectError(e.message)
-
-    def get_connector(self, params={}):
-        """
-        Возвращает connector к бд
-        :return: Connection
-        """
-        raise NotImplemented
-
-    def select(self, *args, **kwargs):
-        """
-            Выполняет "select" запрос
-
-            В **kwargs передаем:
-                table - имя таблицы
-                fields - список полей
-                where - условия выборки
-                order_by - условия сортировки
-                limit - условия ограничения
-        """
-        cursor = self.connector.cursor()
-        cursor.execute(
-            self.query.as_select_sql(*args, **kwargs)
-        )
-        return cursor.fetchall()
-
-    def update(self, *args, **kwargs):
-        """
-            Выполняет "update" запрос
-
-            В **kwargs передаем:
-                table - имя таблицы
-                value - устанавливаемые значения
-                where - условия выборки
-        """
-        self.connector.cursor().execute(
-            self.query.as_update_sql(*args, **kwargs)
-        )
-        self.connector.commit()
-
-    def insert(self, *args, **kwargs):
-        """
-            Выполняет "insert" запрос
-
-            В **kwargs передаем:
-                table - имя таблицы
-                value - сохраняемые значения
-        """
-        self.connector.cursor().execute(
-            self.query.as_insert_sql(*args, **kwargs)
-        )
-        self.connector.commit()
-
-    def delete(self, *args, **kwargs):
-        """
-            Выполняет "delete" запрос
-
-            В **kwargs передаем:
-                table - имя таблицы
-                where - условия выборки
-        """
-        return self.cursor.execute(self.query.as_delete_sql(*args, **kwargs))
-
-
-class MysqlDBSource(DataBaseSourse):
-    """
-        Класс mysql источника
-    """
-    def __init__(self, *args, **kwargs):
-        super(MysqlDBSource, self).__init__(*args, **kwargs)
-
-    def get_connector(self, params={}):
-        """
-        Возвращает коннектор к бд MySQL
-        :param params: параметры бд для подключения
-        :return: Connection
-        """
-        return MySQLdb.connect(**params)
-
-
-class Wsdl(Source):
-    """
-        Класс источника Wsdl
-    """
-    type_source = "wsdl"
-
-    is_proxy = False
-
-    def __init__(self, *args, **kwargs):
-        super(Wsdl, self).__init__(*args, **kwargs)
-
-
-class KmClient(MysqlDBSource):
-    """
-        Класс источника KmClient
-    """
-    is_proxy = False
-    query = MysqlQuery()
-
-    def __init__(self, *args, **kwargs):
-        super(KmClient, self).__init__(*args, **kwargs)
-
-    @signal()
-    def km_signal_1(self):
-        pass
-
-    @callback
-    def km_callback_1(self, *args, **kwargs):
-        pass
-
-
-class DBConnectError(Exception):
-    """
-        Исключение при невозможности подключиться к базе данных источника
-    """
-    pass
