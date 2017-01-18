@@ -9,8 +9,10 @@
 """
 
 
+import os
 import inspect
 import warnings
+import importlib
 
 from django.apps import AppConfig
 from django.db.utils import ProgrammingError
@@ -33,14 +35,32 @@ class BrokerAppConfig(AppConfig):
             в соответствии с полученным списком обновляет таблицу бд
         """
         from models import Source
-        from broker.sources import sources as broker_sources
+        name_module_sources = 'broker.sources'
+        name_file_sources = 'sources'
 
-        # Получаем список имен источников модуля и их типы
-        module_sources = {
-            name: source.type_source for name, source in
-            inspect.getmembers(broker_sources)
-            if getattr(source, 'is_proxy', None) == False
-        }
+        dir_sources = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            name_file_sources
+        )
+        dirs_modules_sources = os.listdir(dir_sources)
+
+        module_sources = {}
+        for source_module in dirs_modules_sources:
+            try:
+                module = importlib.import_module(
+                    "{}.{}.{}".format(name_module_sources, source_module,
+                                      name_file_sources)
+                )
+            except ImportError:
+                pass
+            else:
+                # Получаем список имен источников модуля и их типы
+                module_sources.update({
+                    name: source.type_source for name, source in
+                    inspect.getmembers(module)
+                    if getattr(source, 'is_proxy', None) == False
+                })
+
         module_sources_names = set(module_sources.keys())
 
         try:
