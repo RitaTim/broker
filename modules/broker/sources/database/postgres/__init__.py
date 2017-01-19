@@ -14,7 +14,6 @@
     Пример использования:
         from broker.sources import connections
         PC = connections.PostgresConnect
-        NPC = connections.NamedTuplePostgresConnect
         p = PC(**{
             'dbname': 'test',
             'user': 'us',
@@ -26,11 +25,22 @@
     Примечание!
         p.cursor() вернет корректный ответ только если async=False
 
+    В случае, если нужно использовать нестандартный connection,
+    выполните следующие действия:
+        - импортируйте необходимый connection
+        - создайте класс-наследник от него
+
+    Пример с NamedTupleConnection:
+    from psycopg2.extras import NamedTupleConnection
+
+    class NamedTuplePostgresConnect(PostgresConnectMixin, NamedTupleConnection):
+        pass
 """
 
 from psycopg2 import _param_escape
 from psycopg2._psycopg import connection as PostgresConnection
-from psycopg2.extras import NamedTupleConnection
+
+from broker.sources.database import DataBaseSourse, SqlQuery
 
 
 class PostgresConnectMixin(object):
@@ -90,8 +100,25 @@ class PostgresConnect(PostgresConnectMixin, PostgresConnection):
     pass
 
 
-class NamedTuplePostgresConnect(PostgresConnectMixin, NamedTupleConnection):
+class PostgresqlQuery(SqlQuery):
     """
-        Тестовый класс коннектора
+        Объект Query для postgres
     """
+    # TODO: добавить функционал работы с sql для postgres (аналогия MysqlQuery)
     pass
+
+
+class PostgresSQL(DataBaseSourse):
+    """
+        Класс postgres бд источника
+    """
+
+    query = PostgresqlQuery()
+
+    def get_connector(self, params={}):
+        """
+        Возвращает коннектор к бд PostgreSQL
+        :param params: параметры бд для подключения
+        :return: Connection
+        """
+        return PostgresConnect(**params)

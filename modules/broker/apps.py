@@ -9,7 +9,6 @@
 """
 
 
-import os
 import inspect
 import warnings
 import importlib
@@ -19,7 +18,7 @@ from django.db.utils import ProgrammingError
 from django.conf import settings
 from django.core.cache import cache
 
-from .helpers import get_db_allias_for_source
+from .helpers import get_db_allias_for_source, get_data_sources
 
 
 class BrokerAppConfig(AppConfig):
@@ -35,37 +34,9 @@ class BrokerAppConfig(AppConfig):
             в соответствии с полученным списком обновляет таблицу бд
         """
         from models import Source
-        name_module_sources = 'broker.sources'
-        name_file_sources = 'sources'
-
-        dir_sources = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            name_file_sources
-        )
-        dirs_modules_sources = [
-            item for item in os.listdir(dir_sources)
-            if os.path.isdir(os.path.join(dir_sources, item))
-        ]
-
-        module_sources = {}
-        for source_module in dirs_modules_sources:
-            try:
-                path = ".".join([name_module_sources, source_module,
-                                 name_file_sources])
-                module = importlib.import_module(path)
-            except ImportError:
-                pass
-            else:
-                # Получаем список имен источников модуля и их типы
-                module_sources.update({
-                    name: source for name, source in
-                    inspect.getmembers(
-                        module, predicate=inspect.isclass
-                    ) if source.__module__ == path
-                })
-
+        # Получаем данные по всем источникам в модуле
+        module_sources = get_data_sources()
         module_sources_names = set(module_sources.keys())
-
         try:
             # Выбираем источники, которые уже есть в бд
             db_sources_names = set(
@@ -81,21 +52,8 @@ class BrokerAppConfig(AppConfig):
             Source.objects.bulk_create([
                 Source(
                     source=source_name,
-                    type_source=module_sources[source_name].type_source
+                    type_source=module_sources[source_name]['type']
                 ) for source_name in (module_sources_names - db_sources_names)
             ])
-
-            # Определяем список коннекторов к источникам - бд
-            db_sources_data = {
-                get_db_allias_for_source(source): params
-                for source, params in Source.objects.filter(type_source='db')
-                                            .values_list('source',
-                                                         'init_params')
-            }
-            # Кэшируем параметры источников БД
-            cache.set(
-                 settings.CONNECTIONS_SOURCES_KEY, db_sources_data,
-                 settings.DB_SOURCES_CACHE_TIME
-            )
         except ProgrammingError:
             warnings.warn('Only if deployed')

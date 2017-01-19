@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import json
+import importlib
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.generic import View
 
 from .models import Source
+from .helpers import get_data_sources
 
 
 class SourceFunctions(View):
@@ -23,9 +25,10 @@ class SourceFunctions(View):
             }
             и возвращает их в формате json
         """
-        module = __import__('broker')
         source = get_object_or_404(Source, id=source_id)
-        cls = getattr(module.sources, source.source)
+        module_sources = get_data_sources()
+        module = importlib.import_module(module_sources[source.source]['path'])
+        cls = getattr(module, source.source)
         lst_methods = cls.all_callbacks if type_methods == 'callback' \
             else cls.all_signals
         func_names = [f.func_name for f in lst_methods]

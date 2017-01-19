@@ -5,33 +5,6 @@ from MySQLdb.connections import Connection as MysqlConnection
 from broker.sources.database import DataBaseSourse, SqlQuery
 from broker.sources.exceptions import MysqlQueryException
 
-
-class MysqlDBSource(DataBaseSourse):
-    """
-        Класс mysql источника
-    """
-    def __init__(self, *args, **kwargs):
-        super(MysqlDBSource, self).__init__(*args, **kwargs)
-
-    def get_connector(self, params={}):
-        """
-        Возвращает коннектор к бд MySQL
-        :param params: параметры бд для подключения
-        :return: Connection
-        """
-        return MysqlConnect(**params)
-
-
-class MysqlConnect(MysqlConnection):
-    """
-        Коннект к базе mysql
-        От Connection доступны методы:
-            set_autocommit()
-            get_autocommit()
-    """
-    pass
-
-
 class MysqlQuery(SqlQuery):
     """
     Объект Query для mysql
@@ -45,9 +18,9 @@ class MysqlQuery(SqlQuery):
         'lte': '<=',
     }
     # SQL шаблоны под каждый тип запроса
-    select_template = "broker/sql/mysql/select.html"
-    update_template = "broker/sql/mysql/update.html"
-    insert_template = "broker/sql/mysql/insert.html"
+    select_template = "sql/mysql/select.html"
+    update_template = "sql/mysql/update.html"
+    insert_template = "sql/mysql/insert.html"
 
     def __condition_as_sql(self, conditions):
         """
@@ -144,3 +117,28 @@ class MysqlQuery(SqlQuery):
         }
         params.update(kwargs)
         return self.as_sql(self.insert_template, params)
+
+
+class MysqlDBSource(DataBaseSourse):
+    """
+        Класс mysql источника
+    """
+    query = MysqlQuery()
+
+    def get_connector(self, params={}):
+        """
+        Возвращает коннектор к бд MySQL
+        :param params: параметры бд для подключения
+        :return: Connection
+        """
+        return MysqlConnect(**params)
+
+
+class MysqlConnect(MysqlConnection):
+    """
+        Коннект к базе mysql
+        От Connection доступны методы:
+            set_autocommit()
+            get_autocommit()
+    """
+    pass

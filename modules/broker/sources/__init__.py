@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+    Данный модуль содержит базовые классы для работы со всеми типами источников
 
+    Сами источники необходимо добавлять в файл с именем sources.py
+    в модуль конкретного типа источника
+    Примечание:
+        при смене имени файла sources, поменять значение broker.FILE_SOURCES
+"""
 from broker.meta import BaseClassMeta
 from broker.models import Source as SourceModel
 
@@ -9,10 +16,6 @@ class BaseClass(object):
         Базовый класс
     """
     __metaclass__ = BaseClassMeta
-
-    # По умолчанию, класс является промежуточным звеном между инстансом и
-    # базовым классом. В классе реального источника, нужно установить False
-    is_proxy = True
 
 
 class Source(BaseClass):

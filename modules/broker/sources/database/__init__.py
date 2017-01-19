@@ -146,18 +146,15 @@ class DataBaseSourse(Source):
         Класс, описывающий тип источника "База данных"
     """
     type_source = "db"
-    connector = None
-    cursor = None
-    query = None
+    query = SqlQuery()
 
     def __init__(self, *args, **kwargs):
         super(DataBaseSourse, self).__init__(*args, **kwargs)
         # определяем параметры источника - БД
-        self.query = SqlQuery()
         try:
             # Инициализируем connector для работы с бд
             self.connector = self.get_connector(
-                self.source_model.get_init_params()
+                self.source_model.init_params
             )
         except Exception as e:
             raise DBConnectError(e.message)

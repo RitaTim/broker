@@ -9,7 +9,5 @@ class Wsdl(Source):
     """
     type_source = "wsdl"
 
-    is_proxy = False
-
     def __init__(self, *args, **kwargs):
         super(Wsdl, self).__init__(*args, **kwargs)

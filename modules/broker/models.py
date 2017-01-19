@@ -22,38 +22,12 @@ class Source(models.Model):
     def __unicode__(self):
         return self.source
 
-    def get_init_params(self):
-        """
-           Возвращает параметры источника из кэша или из базы
-        """
-        try:
-            connections_sources = cache.get(settings.CONNECTIONS_SOURCES_KEY)
-            return connections_sources[self.db_alias]
-        except KeyError:
-            return self.init_params
-
     @property
     def db_alias(self):
         """
             Возвращает alias базы данных источника
         """
         return get_db_allias_for_source(self.source)
-
-
-@receiver(pre_save, sender=Source)
-def pre_save_source(sender, instance, **kwargs):
-    """
-        Обновляет коннектор бд источника,
-        в случае если изменились его параметры
-    """
-    if not (hasattr(instance, 'pk') and instance.type_source == 'db'):
-        return
-
-    # Обновляем закэшированные настройки бд
-    connections_sources = cache.get(settings.CONNECTIONS_SOURCES_KEY, {})
-    connections_sources[instance.db_alias] = instance.init_params
-    cache.set(settings.CONNECTIONS_SOURCES_KEY, connections_sources,
-              settings.DB_SOURCES_CACHE_TIME)
 
 
 class Rule(models.Model):

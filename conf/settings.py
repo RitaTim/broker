@@ -126,11 +126,6 @@ CELERY_QUEUES = (
 
 BROKER_URL = None
 
-# Время кэширования параметров баз данных источников
-DB_SOURCES_CACHE_TIME = 15 * 60
-
-CONNECTIONS_SOURCES_KEY = 'CONNECTIONS_SOURCES'
-
 from settings_local import *
 
 if not BROKER_URL:
