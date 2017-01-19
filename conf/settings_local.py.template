@@ -58,8 +58,13 @@ LOGGING = {
         }
 }
 
+BROKER_URL = 'amqp://'
+
 # количество секунд для перезапуска таска
 COUNTDOWN_RETRIES_DEFAULT = 30
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp1.km-union.ru'
 
 CACHES = {
    "default": {
