@@ -42,23 +42,26 @@ class BrokerAppConfig(AppConfig):
             os.path.dirname(os.path.abspath(__file__)),
             name_file_sources
         )
-        dirs_modules_sources = os.listdir(dir_sources)
+        dirs_modules_sources = [
+            item for item in os.listdir(dir_sources)
+            if os.path.isdir(os.path.join(dir_sources, item))
+        ]
 
         module_sources = {}
         for source_module in dirs_modules_sources:
             try:
-                module = importlib.import_module(
-                    "{}.{}.{}".format(name_module_sources, source_module,
-                                      name_file_sources)
-                )
+                path = ".".join([name_module_sources, source_module,
+                                 name_file_sources])
+                module = importlib.import_module(path)
             except ImportError:
                 pass
             else:
                 # Получаем список имен источников модуля и их типы
                 module_sources.update({
-                    name: source.type_source for name, source in
-                    inspect.getmembers(module)
-                    if getattr(source, 'is_proxy', None) == False
+                    name: source for name, source in
+                    inspect.getmembers(
+                        module, predicate=inspect.isclass
+                    ) if source.__module__ == path
                 })
 
         module_sources_names = set(module_sources.keys())
@@ -71,14 +74,14 @@ class BrokerAppConfig(AppConfig):
 
             # Удаляем источники, которых нет в модуле
             Source.objects.filter(
-                source__in=(db_sources_names - module_sources_names )
+                source__in=(db_sources_names - module_sources_names)
             ).delete()
 
             # Добавляем источники, которых нет в бд
             Source.objects.bulk_create([
                 Source(
                     source=source_name,
-                    type_source=module_sources[source_name]
+                    type_source=module_sources[source_name].type_source
                 ) for source_name in (module_sources_names - db_sources_names)
             ])
 
