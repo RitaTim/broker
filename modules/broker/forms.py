@@ -3,8 +3,8 @@
 from django import forms
 from django.forms import Select
 
-from broker import sources as broker_sources
 from models import Rule
+from broker.helpers import get_cls_module
 
 
 class RuleAdminForm(forms.ModelForm):
@@ -49,7 +49,8 @@ class RuleAdminForm(forms.ModelForm):
             Бросает исключение, если сигнала или коллбэка (func_name)
             нет в классе cls_name
         """
-        source_cls = getattr(broker_sources, cls_name)
+        # Получаем данные источника
+        source_cls = get_cls_module(cls_name)
         func_lst = source_cls.all_callbacks \
             if type_func == 'callbacks' else source_cls.all_signals
         func_names = [f.func_name for f in func_lst]

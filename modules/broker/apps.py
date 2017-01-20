@@ -9,16 +9,12 @@
 """
 
 
-import inspect
 import warnings
-import importlib
 
 from django.apps import AppConfig
 from django.db.utils import ProgrammingError
-from django.conf import settings
-from django.core.cache import cache
 
-from .helpers import get_db_allias_for_source, get_data_sources
+from .helpers import get_data_sources
 
 
 class BrokerAppConfig(AppConfig):

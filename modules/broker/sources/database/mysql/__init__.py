@@ -5,6 +5,7 @@ from MySQLdb.connections import Connection as MysqlConnection
 from broker.sources.database import DataBaseSourse, SqlQuery
 from broker.sources.exceptions import MysqlQueryException
 
+
 class MysqlQuery(SqlQuery):
     """
     Объект Query для mysql

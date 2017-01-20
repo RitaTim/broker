@@ -1,13 +1,30 @@
 # -*- coding: utf-8 -*-
 
-from broker.sources import Source
+from broker.sources.wsdl import Wsdl
+from broker.decorators.decorators import callback
 
 
-class Wsdl(Source):
+class OneSWsdl(Wsdl):
     """
-        Класс источника Wsdl
+        Доступ к wsdl серверу
     """
-    type_source = "wsdl"
 
-    def __init__(self, *args, **kwargs):
-        super(Wsdl, self).__init__(*args, **kwargs)
+    @callback
+    def get_report_equipment_repair_status(self, *args, **kwargs):
+        """
+            Возвращает отчет о статусе ремонта оборудования
+            В kwargs должны быть следующие параметры:
+            {
+                'task_id': <id отчета>
+                'uuid': <uuid отчета>,
+                'start_date': <дата создания>,
+                'end_date': <дата получения>,
+                'email': <e-mail>
+            }
+        """
+        result = self.wsdl_client.service.ReportEquipmentRepairStatus2(
+            kwargs['task_id'], kwargs['uuid'], kwargs['start_date'],
+            kwargs['end_date'], kwargs['email']
+        )
+        result['return'] = result['return'].decode('hex')
+        return dict(result)

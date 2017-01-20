@@ -10,6 +10,7 @@ from django.db import transaction
 from app_celery import app
 from broker.decorators.decorators_tasks import set_state, \
     retry_task, expire_task
+from broker.helpers import get_cls_module
 from logger.exceptions import LogFormValidateError
 from logger.forms import SignalLogForm, CallbackLogForm
 from logger.models import CallbackLog
@@ -84,8 +85,8 @@ def receive_signal(self, callback_log_id, *args, **kwargs):
         Запуск обработчика сигнала
     """
     callback_log = CallbackLog.objects.get(id=callback_log_id)
-    destination_instance = getattr(module_broker.sources,
-                                   callback_log.destination.source)()
+    name_source = callback_log.destination.source
+    destination_instance = get_cls_module(name_source)()
     callback = getattr(destination_instance, callback_log.callback)
     if callable(callback):
         return callback(*args, **kwargs)

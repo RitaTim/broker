@@ -10,6 +10,13 @@ class DBConnectError(Exception):
 
 class MysqlQueryException(Exception):
     """
-    Возникает при формировании Mysql запроса
+        Возникает при формировании Mysql запроса
+    """
+    pass
+
+
+class WsdlConnectError(Exception):
+    """
+        Возникает при ошибке подключения к wsdl серверу
     """
     pass

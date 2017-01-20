@@ -61,3 +61,12 @@ def get_data_sources():
                 if source.__module__ == path
             })
     return classes_sources
+
+
+def get_cls_module(cls_name):
+    """
+        Возвращает класс модуля по имени класса cls_name
+    """
+    data_source = get_data_sources().get(cls_name)
+    module_source = importlib.import_module(data_source['path'])
+    return getattr(module_source, cls_name)
