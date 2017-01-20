@@ -112,7 +112,7 @@ class SqlQuery(object):
         (execute метод)
 
         :param table: string имя таблицы
-        :param value: словарь значений
+        :param values: словарь значений
         :param where: list список условий
         :return: string
         """
@@ -124,7 +124,7 @@ class SqlQuery(object):
         (execute метод)
 
         :param table: string имя таблицы
-        :param value: словарь значений
+        :param values: словарь значений
         :return: string
         """
         raise NotImplemented
@@ -176,12 +176,22 @@ class DataBaseSourse(Source):
                 where - условия выборки
                 order_by - условия сортировки
                 limit - условия ограничения
+
+            Возвращает данные в виде списка словарей:
+            [
+                {'id': 1, 'state':'N', ...},
+                {'id': 2, 'state':'N', ...},
+                ...
+            ]
         """
         cursor = self.connector.cursor()
         cursor.execute(
             self.query.as_select_sql(*args, **kwargs)
         )
-        return cursor.fetchall()
+        return [
+            dict(zip([col[0] for col in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
 
     @transaction_atomic
     def update(self, *args, **kwargs):
@@ -190,7 +200,7 @@ class DataBaseSourse(Source):
 
             В **kwargs передаем:
                 table - имя таблицы
-                value - устанавливаемые значения
+                values - устанавливаемые значения
                 where - условия выборки
         """
         self.connector.cursor().execute(
@@ -204,7 +214,7 @@ class DataBaseSourse(Source):
 
             В **kwargs передаем:
                 table - имя таблицы
-                value - сохраняемые значения
+                values - сохраняемые значения
         """
         self.connector.cursor().execute(
             self.query.as_insert_sql(*args, **kwargs)

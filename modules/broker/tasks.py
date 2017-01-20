@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import re
 from copy import deepcopy
 
 from celery.utils.log import get_task_logger
@@ -8,12 +9,12 @@ from django.core.mail import mail_admins
 from django.db import transaction
 
 from app_celery import app
-from broker.decorators.decorators_tasks import set_state, \
-    retry_task, expire_task
-from broker.helpers import get_cls_module
 from logger.exceptions import LogFormValidateError
 from logger.forms import SignalLogForm, CallbackLogForm
 from logger.models import CallbackLog
+from broker.decorators.decorators_tasks import set_state, retry_task, \
+    expire_task
+from broker.helpers import get_cls_module
 
 
 task_logger = get_task_logger(__name__)
@@ -93,3 +94,28 @@ def receive_signal(self, callback_log_id, *args, **kwargs):
 
     task_logger.warning(u'Обработчик "{0}" не является методом'.format(
         callback_log.callback))
+
+
+@app.task(name="analyze_buffer_kmclient", bind=True, queue="receiver")
+def analyze_buffer_kmclient(self, *args, **kwargs):
+    """
+        Анализирует таблицу buffer, выбирая все таски, у которых:
+            opcode = 10 (получение отчетов по ремонту)
+            state = N (новые)
+        И вызывает сигнал на получение отчета для каждого полученного таска
+    """
+    from broker.sources.database.sources import KmClient
+    km = KmClient()
+    new_tasks = km.select(table='buffer',  where={'state': 'N', 'opcode': 10})
+    for new_task in new_tasks:
+        message_in = dict(
+            re.findall('(\w+)=\"(.+?)\"', new_task['message_in'])
+        )
+        km.request_report_equipment_repair(
+            task_id=new_task['id'],
+            uuid=new_task['con_uuid'],
+            start_date=message_in['begindate'],
+            end_date=message_in['enddate'],
+            email=message_in['mail'],
+            agreement=message_in['agreement']
+        )
