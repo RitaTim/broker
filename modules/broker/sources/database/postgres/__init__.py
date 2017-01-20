@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-    Для определения коннектора необходимо создать объект одного из классов,
-    у которого есть миксин PostgresConnectMixin и
-    который унаследован от broker.sources.connection
+    Для определения коннектора необходимо создать объект одного из классов, у
+    которого есть миксин PostgresConnectMixin
 
     Формирование данных для connection реализовано на основе метода connect
     в psycopg2
@@ -12,9 +11,9 @@
     класса родителя
 
     Пример использования:
-        from broker.sources import connections
-        PC = connections.PostgresConnect
-        p = PC(**{
+        from broker.sources.database.postgres import PostgresConnect
+
+        p = PostgresConnect(**{
             'dbname': 'test',
             'user': 'us',
             'password': 'ps',
@@ -28,13 +27,15 @@
     В случае, если нужно использовать нестандартный connection,
     выполните следующие действия:
         - импортируйте необходимый connection
-        - создайте класс-наследник от него
+        - создайте класс-наследник
 
     Пример с NamedTupleConnection:
+
     from psycopg2.extras import NamedTupleConnection
 
     class NamedTuplePostgresConnect(PostgresConnectMixin, NamedTupleConnection):
         pass
+
 """
 
 from psycopg2 import _param_escape
@@ -84,7 +85,7 @@ class PostgresConnectMixin(object):
         """
             Включает/выключает режим autocommit в зависимости от value
         """
-        self.autocommit = value
+        self.autocommit = bool(value)
 
     def get_autocommit(self):
         """
