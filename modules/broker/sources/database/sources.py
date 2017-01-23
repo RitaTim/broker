@@ -21,15 +21,15 @@ class KmClient(MysqlDBSource):
             Выпоняет действия, необходимые после получения отчета:
             обновляет данные buffer
         """
-        task_id = kwargs.pop('id', None)
-        self.update_buffer(task_id, **kwargs)
-        return 'Task {} was successfully updated'.format(task_id)
+        pk = kwargs.pop('id', None)
+        self.update_buffer(pk, **kwargs)
+        return 'Task {} was successfully updated'.format(pk)
 
     def update_buffer(self, id, **kwargs):
         """
             Обновляет строку таблицы буфера
             В kwargs должны быть:
-                task_id - id обновляемой строки
+                id - id обновляемой строки
                 и значения полей, которые нужно обновить
         """
         self.update(

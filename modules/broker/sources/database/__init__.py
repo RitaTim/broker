@@ -90,7 +90,7 @@ class SqlQuery(object):
         return condition
 
     def as_select_sql(self, table=None, fields=[], where=[], order_by=[],
-                      limit=[]):
+                      limit=[], for_update=False):
         """
         Возвращает sql строку типа "SELECT" для дальнейшего использования
         (execute метод)
@@ -102,6 +102,7 @@ class SqlQuery(object):
             например: ['name', '-price']
         :param limit: list список ограничений
             например: [0, 100]
+        :param for_update: использовать FOR UPDATE (по умолчанию False)
         :return: string
         """
         raise NotImplemented

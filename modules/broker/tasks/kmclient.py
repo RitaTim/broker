@@ -23,7 +23,8 @@ def get_params_from_string(line, params=[]):
     return dict(
         [
             (name_field, value) for name_field, value
-            in re.findall('(\w+)=\"(.+?)\"', line) if name_field in params
+            in re.findall('(\w+)=\"(.+?)\"', line)
+            if not params or name_field in params
         ]
     )
 
@@ -38,7 +39,8 @@ def analyze_buffer_kmclient(self, *args, **kwargs):
     """
     km = KmClient()
     # Устанавливаем состояние в P - process
-    new_tasks = km.select(table='buffer',  where={'state': 'N', 'opcode': 10})
+    new_tasks = km.select(table='buffer',  where={'state': 'N', 'opcode': 10},
+                          for_update=True)
     for new_task in new_tasks:
         km.update_buffer(new_task['id'], state='P')
         message_in = get_params_from_string(
