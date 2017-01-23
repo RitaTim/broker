@@ -1,10 +1,15 @@
-Проект демонстрирует несколько различный обработчиков на одно сообщение
+Проект осуществляет взаимодействие между источниками.
+
 
 Запуск worker'ов
 
-bin/celery worker -A app_celery.analize -Q analize --purge
-bin/celery worker -A app_celery.logger -Q logger --purge
+для тасков-обработчиков:
+    bin/celery worker -A app_celery -Q receiver --purge
+для логирования поступающих сигналов:
+    bin/celery worker -A app_celery -Q logger --purge
+для отдельных тасков, которые мониторят выполнение обработчиков
+    bin/celery worker -A app_celery -Q control --purge
 
 Запуск task'а
 
-bin/celery call -A app_celery --exchange=main --routing-key=task.* hello
+bin/celery call -A app_celery --exchange=main --routing-key=logger.* send_signal

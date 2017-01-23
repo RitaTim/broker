@@ -46,20 +46,16 @@ def get_data_sources():
 
     classes_sources = {}
     for source_module, path in dirs_sources.iteritems():
-        try:
-            module = importlib.import_module(path)
-        except ImportError:
-            pass
-        else:
-            # Получаем список имен источников модуля, их типы и пути к классам
-            classes_sources.update({
-                name: {
-                    'type': getattr(source, 'type_source', None),
-                    'path': path,
-                } for name, source in
-                inspect.getmembers(module, predicate=inspect.isclass)
-                if source.__module__ == path
-            })
+        module = importlib.import_module(path)
+        # Получаем список имен источников модуля, их типы и пути к классам
+        classes_sources.update({
+            name: {
+                'type': getattr(source, 'type_source', None),
+                'path': path,
+            } for name, source in
+            inspect.getmembers(module, predicate=inspect.isclass)
+            if source.__module__ == path
+        })
     return classes_sources
 
 

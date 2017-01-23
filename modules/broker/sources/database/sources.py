@@ -16,16 +16,24 @@ class KmClient(MysqlDBSource):
         pass
 
     @callback
-    def update_buffer(self, *args, **kwargs):
+    def response_report_equipment_repair(self, *args, **kwargs):
         """
-            Обновляет таблицу буфера
+            Выпоняет действия, необходимые после получения отчета:
+            обновляет данные buffer
+        """
+        task_id = kwargs.pop('id', None)
+        self.update_buffer(task_id, **kwargs)
+        return 'Task {} was successfully updated'.format(task_id)
+
+    def update_buffer(self, id, **kwargs):
+        """
+            Обновляет строку таблицы буфера
             В kwargs должны быть:
                 task_id - id обновляемой строки
                 и значения полей, которые нужно обновить
         """
         self.update(
             table='buffer',
-            where={'id': kwargs.pop('task_id', None)},
+            where={'id': id},
             values=kwargs
         )
-        return {'Values were set ': kwargs}

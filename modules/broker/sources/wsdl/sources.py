@@ -37,19 +37,16 @@ class OneSWsdl(Wsdl):
                 'email': <e-mail>
             }
         """
-        # Устанавливаем состояние в P - process
-        self.change_task_state_buffer(task_id=kwargs['task_id'], state='P')
-
         date_f = "%Y%m%d"
         result = dict(self.wsdl_client.service.ReportEquipmentRepairStatus2(
-            kwargs['task_id'], kwargs['uuid'],
-            datetime.strptime(kwargs['start_date'], date_f),
-            datetime.strptime(kwargs['end_date'], date_f), kwargs['email']
+            kwargs['id'], kwargs['user_uuid'],
+            datetime.strptime(kwargs['begindate'], date_f),
+            datetime.strptime(kwargs['enddate'], date_f), kwargs['mail']
         ))
         # Кидаем сигнал о том, что отчет получен
 
         self.received_report_equipment_repair(
-            task_id=kwargs['task_id'], data=result.get('return'), state='F',
+            id=kwargs['id'], data=result.get('return'), state='F',
             time_out=datetime.now().strftime("%Y%m%d%I%M%S")
         )
         return result

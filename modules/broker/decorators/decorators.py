@@ -2,8 +2,6 @@
 
 from functools import wraps
 
-from broker.tasks import send_signal
-
 
 def signal(*args, **kwargs):
     """
@@ -13,6 +11,7 @@ def signal(*args, **kwargs):
         @wrapped(func, 'is_signal')
         def wrapper(self, *args_method, **kwargs_method):
             # Формируем параметры сигнала
+            from broker.tasks import send_signal
             send_signal.apply_async(kwargs={
                 # источник сигнала
                 'source': self.source_model.pk,

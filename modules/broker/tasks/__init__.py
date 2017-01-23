@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import json
-import re
 from copy import deepcopy
 
 from celery.utils.log import get_task_logger
@@ -16,9 +15,9 @@ from broker.decorators.decorators_tasks import set_state, retry_task, \
     expire_task
 from broker.helpers import get_cls_module
 
+from .kmclient import analyze_buffer_kmclient
 
 task_logger = get_task_logger(__name__)
-module_broker = __import__('broker')
 
 
 @app.task(name="send_signal", queue="logger")
@@ -96,26 +95,28 @@ def receive_signal(self, callback_log_id, *args, **kwargs):
         callback_log.callback))
 
 
-@app.task(name="analyze_buffer_kmclient", bind=True, queue="receiver")
-def analyze_buffer_kmclient(self, *args, **kwargs):
+@app.task(name="check_state_by_expire", queue="control")
+def check_state_by_expire(callback_log_id, terminate_in_process):
     """
-        Анализирует таблицу buffer, выбирая все таски, у которых:
-            opcode = 10 (получение отчетов по ремонту)
-            state = N (новые)
-        И вызывает сигнал на получение отчета для каждого полученного таска
+        Проверяет состояние обработчика по истечении expire
+        Если обработчик еще выполняется И terminate_in_process=False:
+            - добавляем сообщение в лог, о том,что expire проигнорирован
+        Если (обработчик выполняется И terminate_in_process=True) ИЛИ
+        обработчик не запущен:
+            - меняем состояние на failure
+            - добавляем соответствующее сообщение в лог
+            - останавливаем таск
     """
-    from broker.sources.database.sources import KmClient
-    km = KmClient()
-    new_tasks = km.select(table='buffer',  where={'state': 'N', 'opcode': 10})
-    for new_task in new_tasks:
-        message_in = dict(
-            re.findall('(\w+)=\"(.+?)\"', new_task['message_in'])
-        )
-        km.request_report_equipment_repair(
-            task_id=new_task['id'],
-            uuid=new_task['con_uuid'],
-            start_date=message_in['begindate'],
-            end_date=message_in['enddate'],
-            email=message_in['mail'],
-            agreement=message_in['agreement']
-        )
+    callback_log = CallbackLog.objects.get(pk=callback_log_id)
+    if (callback_log.state in CallbackLog.STATES['process']
+            and not terminate_in_process):
+        task_logger.warning(u'Не могу сбросить (не задан параметр '
+                            u'"terminate_in_process")')
+    elif callback_log.state in CallbackLog.STATES['start'] \
+            or (callback_log.state in CallbackLog.STATES['process']
+                and terminate_in_process):
+        callback_log.revoke_task(task_logger=task_logger)
+        with transaction.atomic():
+            callback_log.state = 'failure'
+            callback_log.message = 'Skipped by "check_state_by_expire"'
+            callback_log.save(update_fields=('state', 'message'))

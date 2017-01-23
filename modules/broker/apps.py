@@ -17,6 +17,13 @@ from django.db.utils import ProgrammingError
 from .helpers import get_data_sources
 
 
+class ModuleSourcesExceptions(Exception):
+    """
+        Генерируется при ошибке при получении источников модуля
+    """
+    pass
+
+
 class BrokerAppConfig(AppConfig):
     """
         Класс, анализирующий классы и параметры брокера при запуске проекта
@@ -32,6 +39,8 @@ class BrokerAppConfig(AppConfig):
         from models import Source
         # Получаем данные по всем источникам в модуле
         module_sources = get_data_sources()
+        if not module_sources:
+            raise ModuleSourcesExceptions('Sources in module were not found')
         module_sources_names = set(module_sources.keys())
         try:
             # Выбираем источники, которые уже есть в бд
