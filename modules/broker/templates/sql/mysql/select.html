@@ -23,5 +23,5 @@ FROM `{{ table }}`
   LIMIT {{ limit.0 }}, {{ limit.1 }}
 {% endif %}
 {% if for_update %}
-    FOR UPDATE;
+    FOR UPDATE
 {% endif %}

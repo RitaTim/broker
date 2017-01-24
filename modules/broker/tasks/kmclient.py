@@ -5,6 +5,7 @@ import re
 from app_celery import app
 from celery.utils.log import get_task_logger
 
+from broker.sources import TransactionAtomicManager
 from broker.sources.database.sources import KmClient
 
 
@@ -38,14 +39,25 @@ def analyze_buffer_kmclient(self, *args, **kwargs):
         И вызывает сигнал на получение отчета для каждого полученного таска
     """
     km = KmClient()
-    # Устанавливаем состояние в P - process
-    new_tasks = km.select(table='buffer',  where={'state': 'N', 'opcode': 10},
-                          for_update=True)
-    for new_task in new_tasks:
-        km.update_buffer(new_task['id'], state='P')
-        message_in = get_params_from_string(
-            new_task['message_in'],
-            params=['begindate', 'enddate', 'mail', 'agreement']
+    with TransactionAtomicManager(km.connector):
+        new_tasks = km.select(
+            table='buffer',
+            where={'state': 'N', 'opcode': 10},
+            for_update=True
         )
-        new_task.update(message_in)
-        km.request_report_equipment_repair(**new_task)
+        ids = []
+        for new_task in new_tasks:
+            params_in_message = get_params_from_string(
+                new_task['message_in'],
+                params=['begindate', 'enddate', 'mail', 'agreement']
+            )
+            params_in_message.update({
+                'id': new_task['id'],
+                'user_uuid': new_task['user_uuid']
+            })
+            km.request_report_equipment_repair(**params_in_message)
+            # собираем список анализируемых id-ников
+            ids.append(params_in_message['id'])
+        if ids:
+            # Устанавливаем состояние P ("В работе")
+            km.update_buffer({'id__in': ids}, state='P')

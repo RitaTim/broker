@@ -2,6 +2,8 @@
 
 from MySQLdb.connections import Connection as MysqlConnection
 
+from django.template import Template, Context
+
 from broker.sources.database import DataBaseSourse, SqlQuery
 from broker.sources.exceptions import MysqlQueryException
 
@@ -17,7 +19,13 @@ class MysqlQuery(SqlQuery):
         'gte': '>=',
         'lt': '<',
         'lte': '<=',
+        'in': 'IN'
     }
+    # Шаблоны для lookups'ов
+    condition_templates = {
+        'in': '({% for val in value %}"{{ val }}"{% if not forloop.last %}, {% endif %}{% endfor %})'
+    }
+
     # SQL шаблоны под каждый тип запроса
     select_template = "sql/mysql/select.html"
     update_template = "sql/mysql/update.html"
@@ -35,19 +43,23 @@ class MysqlQuery(SqlQuery):
         :param conditions: tuple условий
         :return: string
         """
-        connectors = set(['OR', 'AND'])
+        connectors = ('OR', 'AND')
         sql = ''
         for condition in conditions:
             if isinstance(condition, (list, tuple)):
-                if connectors & set(condition):
-                    sql += u' ( {0} ) '\
-                           .format(self.__condition_as_sql(condition))
+                if any([(connector in condition) for connector in connectors]):
+                    sql += u' ( {0} ) '.format(
+                        self.__condition_as_sql(condition)
+                    )
                 else:
                     try:
-                        sql += u' (`{0}` {1} "{2}") '.format(
+                        tmpl_code = self.condition_templates.get(
+                            condition[1], '"{{ value }}"')
+                        sql += u' (`{0}` {1} {2}) '.format(
                             condition[0],
                             self.lookups[condition[1]],
-                            condition[2]
+                            Template(tmpl_code)
+                                .render(Context({'value': condition[2]}))
                         )
                     except KeyError:
                         raise MysqlQueryException(
@@ -72,6 +84,7 @@ class MysqlQuery(SqlQuery):
             например: ['name', '-price']
         :param limit: list список ограничений
             например: [0, 100]
+        :param for_update: использовать FOR UPDATE (по умолчанию False)
         :return: string
         """
         params = {
@@ -133,6 +146,9 @@ class MysqlDBSource(DataBaseSourse):
         :return: Connection
         """
         return MysqlConnect(**params)
+
+    def get_cursor(self):
+        return self.connector.cursor()
 
 
 class MysqlConnect(MysqlConnection):

@@ -157,6 +157,7 @@ class DataBaseSourse(Source):
             self.connector = self.get_connector(
                 self.source_model.init_params
             )
+            self.cursor = self.get_cursor()
         except Exception as e:
             raise DBConnectError(e.message)
 
@@ -164,6 +165,13 @@ class DataBaseSourse(Source):
         """
         Возвращает connector к бд
         :return: Connection
+        """
+        raise NotImplemented
+
+    def get_cursor(self):
+        """
+        Возвращает cursor к бд
+        :return: cursor
         """
         raise NotImplemented
 
@@ -177,6 +185,7 @@ class DataBaseSourse(Source):
                 where - условия выборки
                 order_by - условия сортировки
                 limit - условия ограничения
+                for_update: использовать FOR UPDATE (по умолчанию False)
 
             Возвращает данные в виде списка словарей:
             [
@@ -185,13 +194,12 @@ class DataBaseSourse(Source):
                 ...
             ]
         """
-        cursor = self.connector.cursor()
-        cursor.execute(
+        self.cursor.execute(
             self.query.as_select_sql(*args, **kwargs)
         )
         return [
-            dict(zip([col[0] for col in cursor.description], row))
-            for row in cursor.fetchall()
+            dict(zip([col[0] for col in self.cursor.description], row))
+            for row in self.cursor.fetchall()
         ]
 
     @transaction_atomic
@@ -204,7 +212,7 @@ class DataBaseSourse(Source):
                 values - устанавливаемые значения
                 where - условия выборки
         """
-        self.connector.cursor().execute(
+        self.cursor.execute(
             self.query.as_update_sql(*args, **kwargs)
         )
 
@@ -217,7 +225,7 @@ class DataBaseSourse(Source):
                 table - имя таблицы
                 values - сохраняемые значения
         """
-        self.connector.cursor().execute(
+        self.cursor().execute(
             self.query.as_insert_sql(*args, **kwargs)
         )
 
@@ -229,6 +237,6 @@ class DataBaseSourse(Source):
                 table - имя таблицы
                 where - условия выборки
         """
-        return self.connector.cursor().execute(
+        return self.cursor.execute(
             self.query.as_delete_sql(*args, **kwargs)
         )

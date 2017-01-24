@@ -44,9 +44,7 @@ class OneSWsdl(Wsdl):
             datetime.strptime(kwargs['enddate'], date_f), kwargs['mail']
         ))
         # Кидаем сигнал о том, что отчет получен
-
         self.received_report_equipment_repair(
-            id=kwargs['id'], data=result.get('return'), state='F',
-            time_out=datetime.now().strftime("%Y%m%d%I%M%S")
+            id=kwargs['id'], data=result.get('return')
         )
         return result
