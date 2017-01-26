@@ -30,8 +30,8 @@ def get_params_from_string(line, params=[]):
     )
 
 
-@app.task(name="analyze_buffer_kmclient", bind=True)
-def analyze_buffer_kmclient(self, *args, **kwargs):
+@app.task(name="analyze_buffer_kmclient")
+def analyze_buffer_kmclient(*args, **kwargs):
     """
         Анализирует таблицу buffer, выбирая все таски, у которых:
             opcode = 10 (получение отчетов по ремонту)

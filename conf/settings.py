@@ -127,18 +127,36 @@ CELERY_QUEUES = (
 BROKER_URL = None
 
 # Время хранения логов
-KEEP_BROKER_LOGS = 7    # дней
+KEEP_BROKER_LOGS = 7    # количество дней
 # Время хранения архива логов
-KEEP_BROKER_LOGS_HISTORY = 30   # дней
+KEEP_BROKER_LOGS_HISTORY = 30   # количество дней
 
 from celery.schedules import crontab
+from datetime import timedelta
 
 CELERYBEAT_SCHEDULE = {
+
+    # Системные задачи
+
     'clear_logs': {
-        # очищает устаревшие логи
+        # Очищает устаревшие логи и выполняет арихвирование сигналов
         'task': 'clear_logs',
         'schedule': crontab(hour=1),
     },
+
+    # Задачи источников
+
+    # -------------------- #
+    # ----- KmClient ----- #
+    # -------------------- #
+
+    'analyze_buffer': {
+        # Анализируем буфер приложения КМКлиент на наличие запросов к 1С
+        'task': 'analyze_buffer_kmclient',
+        'schedule': timedelta(seconds=15),
+        'relative': True
+    },
+
 }
 
 from settings_local import *
