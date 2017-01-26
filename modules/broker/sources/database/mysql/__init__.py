@@ -154,8 +154,11 @@ class MysqlDBSource(DataBaseSourse):
 class MysqlConnect(MysqlConnection):
     """
         Коннект к базе mysql
-        От Connection доступны методы:
-            set_autocommit()
-            get_autocommit()
+        От Connection доступен метод get_autocommit()
     """
-    pass
+    def set_autocommit(self, value):
+        """
+        Устанавливаем значение autocommit
+        :param value: bool
+        """
+        self.autocommit(value)
