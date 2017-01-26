@@ -8,30 +8,48 @@ from broker.models import Source
 from app_celery import app
 
 
-class SignalLog(models.Model):
+class SignalLogAbstract(models.Model):
     """
-        Модель для логирования событий. Включает в себя поля:
+        Абстрактная модель для логирования событий. Включает в себя поля:
             source - источник
             signature - наименование сигнала
             args_signal - args, с которыми вызывался метод сигнала
             kwargs_signal - kwargs, с которыми вызывался метод сигнала
             params - параметры вызова таска
-            date_create - дата создания
+            created - дата создания
     """
     source = models.ForeignKey(Source, verbose_name=u"Источник",
-                               related_name="signal_log_source")
+                               related_name="%(app_label)s_%(class)s_source")
     signature = models.CharField(u"Сигнатура", max_length=128)
     args_signal = JSONField(null=True, blank=True)
     kwargs_signal = JSONField(null=True, blank=True)
     params = JSONField(null=True, blank=True)
-    date_create = models.DateTimeField(u"Дата создания", auto_now_add=True)
+
+    class Meta:
+        abstract = True
 
 
-class CallbackLog(models.Model):
+class SignalLog(SignalLogAbstract):
+    """
+        Модель для хранения недавних логов событий
+    """
+    created = models.DateTimeField(u"Дата создания", auto_now_add=True)
+
+
+class SignalLogHistory(SignalLogAbstract):
+    """
+        Модель для хранения архива логов событий
+        Добавили поля id и created, чтобы при создании эти значения можно было
+        задавать не автоматически. Берем эти значения из SignalLog
+    """
+    id = models.IntegerField(primary_key=True)
+    created = models.DateTimeField(u"Дата создания")
+
+
+class CallbackLogAbstract(models.Model):
     """
         Модель для логирования данных по обработчикам событий.
         Включает в себя поля:
-            signal_logger - лог сигнала
             destination - приемник сигнала
             callback - название обработчика сигнала
             params - параметры, с которыми будет вызываться callback
@@ -58,10 +76,10 @@ class CallbackLog(models.Model):
         'final': ('success', 'failure')
     }
 
-    signal_logger = models.ForeignKey(SignalLog, verbose_name=u"Лог события",
-                                      related_name="signal_logger")
-    destination = models.ForeignKey(Source, verbose_name=u"Приемник",
-                                    related_name="callback_log_source")
+    destination = models.ForeignKey(
+        Source, verbose_name=u"Приемник",
+        related_name="%(app_label)s_%(class)s_destination"
+    )
     callback = models.CharField(u"Обработчик", max_length=128)
     params = JSONField(null=True, blank=True)
     state = models.CharField(u"Состояние", max_length=128,
@@ -71,7 +89,6 @@ class CallbackLog(models.Model):
     task_uuid = models.UUIDField(u"Uuid таска", null=True, blank=True)
     check_task_uuid = models.UUIDField(u"Uuid таска отмены", null=True,
                                        blank=True)
-    created = models.DateTimeField(u"Дата создания", auto_now_add=True)
     updated = models.DateTimeField(u"Дата обновления", auto_now=True)
 
     def revoke_task(self, check_task=False, task_logger=None):
@@ -86,3 +103,28 @@ class CallbackLog(models.Model):
             if task_logger:
                 task_logger.info(u'Сбрасываем task "{0}" по отмене'
                                  .format(task_uuid))
+
+    class Meta:
+        abstract = True
+
+
+class CallbackLog(CallbackLogAbstract):
+    """
+        Модель для хранения недавних логов обработчиков
+        Включает все поля абстрактной модели и signal_logger - лог сигнала
+    """
+    signal_logger = models.ForeignKey(SignalLog,
+                                      verbose_name=u"Лог события",
+                                      related_name="signal_logger")
+    created = models.DateTimeField(u"Дата создания", auto_now_add=True)
+
+
+class CallbackLogHistory(CallbackLogAbstract):
+    """
+        Модель для хранения архива логов обработчиков
+        Включает все поля абстрактной модели и signal_logger - лог сигнала
+    """
+    signal_logger = models.ForeignKey(SignalLogHistory,
+                                      verbose_name=u"Лог события",
+                                      related_name="signal_logger")
+    created = models.DateTimeField(u"Дата создания")

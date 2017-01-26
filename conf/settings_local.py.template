@@ -75,3 +75,5 @@ CACHES = {
        }
    }
 }
+
+CELERYBEAT_SCHEDULE = {}

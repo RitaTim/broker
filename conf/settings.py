@@ -126,6 +126,21 @@ CELERY_QUEUES = (
 
 BROKER_URL = None
 
+# Время хранения логов
+KEEP_BROKER_LOGS = 7    # дней
+# Время хранения архива логов
+KEEP_BROKER_LOGS_HISTORY = 30   # дней
+
+from celery.schedules import crontab
+
+CELERYBEAT_SCHEDULE = {
+    'clear_logs': {
+        # очищает устаревшие логи
+        'task': 'clear_logs',
+        'schedule': crontab(hour=1),
+    },
+}
+
 from settings_local import *
 
 if not BROKER_URL:
