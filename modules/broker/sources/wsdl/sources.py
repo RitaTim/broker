@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import uuid
 from datetime import datetime
 
 from broker.sources.wsdl import Wsdl
@@ -28,23 +29,25 @@ class OneSWsdl(Wsdl):
     def get_report_equipment_repair(self, *args, **kwargs):
         """
             Возвращает отчет о статусе ремонта оборудования
-            В kwargs должны быть следующие параметры:
-            {
-                'id': <id записи>
-                'uuid': <uuid отчета>,
-                'begindate': <дата создания>,
-                'enddate': <дата получения>,
-                'email': <e-mail>
-            }
+            Метод ReportEquipmentRepairStatus() требует следующие параметры:
+             'id' - id записи,
+             'user_uuid' - uuid дилера. Ожидает тип UUID
+             'agreement' - uuid соглашения. Ожидает тип UUID
+             'begindate' - начало формирования отчета. Ожидает тип datetime
+             'enddate' - конец формирования отчета. Ожидает тип datetime
+             'mail' - e-mail
         """
         date_f = "%Y%m%d"
-        result = dict(self.wsdl_client.service.ReportEquipmentRepairStatus2(
-            kwargs['id'], kwargs['user_uuid'],
+        wsdl_return = dict(self.wsdl_client.service.ReportEquipmentRepairStatus(
+            kwargs['id'], uuid.UUID(kwargs['user_uuid']),
+            uuid.UUID(kwargs['agreement']),
             datetime.strptime(kwargs['begindate'], date_f),
             datetime.strptime(kwargs['enddate'], date_f), kwargs['mail']
-        ))
+        )).get('return')
         # Кидаем сигнал о том, что отчет получен
         self.received_report_equipment_repair(
-            id=kwargs['id'], data=result.get('return')
+            id=kwargs['id'], data=getattr(wsdl_return, 'Data', ''),
+            message=unicode(getattr(wsdl_return, '_Message', '')),
+            status=str(getattr(wsdl_return, '_Status', 0))
         )
-        return result
+        return wsdl_return
