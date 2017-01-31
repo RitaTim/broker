@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import uuid
+from suds import WebFault
 from datetime import datetime
 
 from broker.sources.wsdl import Wsdl
 from broker.decorators.decorators import callback, signal
+from broker.sources.exceptions import WsdlAnswerException
 
 
 class OneSWsdl(Wsdl):
@@ -25,7 +27,7 @@ class OneSWsdl(Wsdl):
         """
         pass
 
-    @callback
+    @callback(func_error='set_error_state')
     def get_report_equipment_repair(self, *args, **kwargs):
         """
             Возвращает отчет о статусе ремонта оборудования
@@ -37,17 +39,37 @@ class OneSWsdl(Wsdl):
              'enddate' - конец формирования отчета. Ожидает тип datetime
              'mail' - e-mail
         """
-        date_f = "%Y%m%d"
-        wsdl_return = dict(self.wsdl_client.service.ReportEquipmentRepairStatus(
-            kwargs['id'], uuid.UUID(kwargs['user_uuid']),
-            uuid.UUID(kwargs['agreement']),
-            datetime.strptime(kwargs['begindate'], date_f),
-            datetime.strptime(kwargs['enddate'], date_f), kwargs['mail']
-        )).get('return')
-        # Кидаем сигнал о том, что отчет получен
-        self.received_report_equipment_repair(
-            id=kwargs['id'], data=getattr(wsdl_return, 'Data', ''),
-            message=unicode(getattr(wsdl_return, '_Message', '')),
-            status=str(getattr(wsdl_return, '_Status', 0))
-        )
-        return wsdl_return
+        try:
+            date_f = "%Y%m%d"
+            wsdl_return = dict(
+                self.wsdl_client.service.ReportEquipmentRepairStatus(
+                    kwargs['id'], uuid.UUID(kwargs['user_uuid']),
+                    uuid.UUID(kwargs['agreement']),
+                    datetime.strptime(kwargs['begindate'], date_f),
+                    datetime.strptime(kwargs['enddate'], date_f),
+                    kwargs['mail']
+                )
+            ).get('return')
+            # Кидаем сигнал о том, что отчет получен
+            self.received_report_equipment_repair(
+                id=kwargs['id'],
+                status=str(getattr(wsdl_return, '_Status', 0)),
+                data=getattr(wsdl_return, 'Data', ''),
+                message=unicode(getattr(wsdl_return, '_Message', ''))
+            )
+            return wsdl_return
+        except WebFault as error:
+            # Реагируем только на exceptions, по которым нужно перезапускать
+            # и генерируем WsdlAnswerException для них
+            raise WsdlAnswerException(error.message)
+
+
+def set_error_state(exc_type, exc, *args, **kwargs):
+    """
+        Устанавливает состояние записи в buffer с ошибкой
+    """
+    one_s_wsdl = OneSWsdl()
+    one_s_wsdl.received_report_equipment_repair(
+        id=kwargs['id'], status='8', data='',
+        message=u"Время ожидания результата истекло"
+    )

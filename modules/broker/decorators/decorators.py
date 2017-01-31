@@ -28,14 +28,18 @@ def signal(*args, **kwargs):
     return decorator
 
 
-def callback(func):
+def callback(*args, **kwargs):
     """
         Декоратор для функции-коллбэка
     """
-    @wrapped(func, 'is_callback')
-    def wrapper(self, *args, **kwargs):
-        return func(self, *args, **kwargs)
-    return wrapper
+    def decorator(func):
+        @wrapped(func, 'is_callback')
+        @wrapped(func, 'callback_args', args)
+        @wrapped(func, 'callback_kwargs', kwargs)
+        def wrapper(self, *args_method, **kwargs_method):
+            return func(self, *args_method, **kwargs_method)
+        return wrapper
+    return decorator
 
 
 def wrapped(func, attr_name, attr_val=True):

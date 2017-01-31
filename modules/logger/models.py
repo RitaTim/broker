@@ -60,6 +60,8 @@ class CallbackLogAbstract(models.Model):
                 failure - завершен с ошибкой
             message - сообщение
             result - результат таска
+            callback_args - args обработчика из декоратора @callback
+            callback_kwargs - kwargs обработчика из декоратора @callback
             created - дата создания
             updated - дата обновления
     """
@@ -86,6 +88,8 @@ class CallbackLogAbstract(models.Model):
                              choices=STATE_CHOICES, default='pending')
     message = models.TextField(u"Сообщение", null=True, blank=True)
     result = JSONField(null=True, blank=True)
+    callback_args = JSONField(null=True, blank=True)
+    callback_kwargs = JSONField(null=True, blank=True)
     task_uuid = models.UUIDField(u"Uuid таска", null=True, blank=True)
     check_task_uuid = models.UUIDField(u"Uuid таска отмены", null=True,
                                        blank=True)

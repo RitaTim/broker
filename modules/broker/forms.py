@@ -51,11 +51,10 @@ class RuleAdminForm(forms.ModelForm):
         """
         # Получаем данные источника
         source_cls = get_cls_module(cls_name)
-        func_lst = source_cls.all_callbacks \
-            if type_func == 'callbacks' else source_cls.all_signals
-        func_names = [f.func_name for f in func_lst]
+        func_lst = source_cls.get_all_callbacks() \
+            if type_func == 'callbacks' else source_cls.get_all_signals()
 
-        if not func_name in func_names:
+        if not func_name in func_lst:
             raise forms.ValidationError(
                 u'У класса {} нет указанной функции {} типа {}'
                 .format(cls_name, func_name, type_func)

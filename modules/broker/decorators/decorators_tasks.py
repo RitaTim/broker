@@ -54,6 +54,16 @@ def set_state(func, *args, **kwargs):
                 self.callback_log.save(update_fields=('state', 'message'))
                 self.callback_log.revoke_task(check_task=True,
                                               task_logger=task_logger)
+
+            # Если указана функция для вызова при ошибке, вызываем ее
+            func_error = self.callback_log.callback_kwargs.get('func_error')
+            if func_error:
+                callback_error = import_string(func_error)
+                if callable(callback_error):
+                    callback_error(
+                        type(e), e, *self.request.args, **self.request.kwargs
+                    )
+
     return wrapper
 
 

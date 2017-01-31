@@ -7,13 +7,15 @@ class BaseClassMeta(type):
     """
         Базовый мета-класс
     """
-    all_callbacks = []
-    all_signals = []
+
+    __callback_params = dict()
+    __all_callbacks = []
+    __all_signals = []
 
     def __new__(cls, name, bases, attrs):
         new_cls = super(BaseClassMeta, cls).__new__(cls, name, bases, attrs)
 
-        callbacks = []
+        callback_params = dict()
         signals = []
         for name_attr, attr in attrs.items():
             # проверяем только атрибуты типа функции
@@ -23,22 +25,45 @@ class BaseClassMeta(type):
             # расширяем списки коллбэков и сигналов функциями
             # с соответствующими атрибутами
             if hasattr(attr, 'is_callback'):
-                callbacks.append(attr)
-            if hasattr(attr, 'is_signal'):
-                signals.append(attr)
+                callback_params[name_attr] = {
+                    'args': getattr(attr, 'callback_args', None),
+                    'kwargs': getattr(attr, 'callback_kwargs', None)
+                }
 
-        new_cls.all_callbacks = callbacks
-        new_cls.all_signals = signals
+                func_error = callback_params[name_attr].get('kwargs', {})\
+                                                       .get('func_error')
+                if func_error:
+                    # Если указан неполный путь, полагаем,
+                    # что функция находится в текущем модуле
+                    if not "." in func_error:
+                        callback_params[name_attr]["kwargs"]["func_error"] = \
+                            ".".join([new_cls.__module__, func_error])
+
+            if hasattr(attr, 'is_signal'):
+                signals.append(name_attr)
+
+        new_cls.__callback_params = callback_params
+        new_cls.__all_callbacks = callback_params.keys()
+        new_cls.__all_signals = signals
         return new_cls
 
     def get_all_callbacks(cls):
         """
             Возвращает список коллбэков класса
         """
-        return cls.all_callbacks
+        return cls.__all_callbacks
 
     def get_all_signals(cls):
         """
             Возвращает список сигналов класса
         """
-        return cls.all_signals
+        return cls.__all_signals
+
+    def get_callback_params(cls, callback_name=None):
+        """
+        Возвращает параметры декоратора callback'а
+
+        :param callback_name: string название метода
+        :return:
+        """
+        return cls.__callback_params.get(callback_name, {})

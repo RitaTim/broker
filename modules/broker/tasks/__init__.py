@@ -49,10 +49,14 @@ def send_signal(*args, **kwargs):
         # логируем callback
         params = deepcopy(signal_log.params)
         params.update(rule.params or {})
+        destination_cls = get_cls_module(rule.destination.source)
+        callback_params = destination_cls.get_callback_params(rule.callback)
         callback_log_form = CallbackLogForm({
             'signal_logger': signal_log.pk,
             'destination': rule.destination.pk,
             'callback': rule.callback,
+            'callback_args': json.dumps(callback_params.get('args', ())),
+            'callback_kwargs': json.dumps(callback_params.get('kwargs', {})),
             'params': json.dumps(params)
         })
         # и вызываем его

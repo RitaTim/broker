@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
+from django.utils import timezone
 
 from django.template import Template, Context
 
@@ -23,27 +23,29 @@ class KmClient(MysqlDBSource):
         """
         pass
 
-    @callback
+    @callback()
     @transaction_atomic
     def response_report_equipment_repair(self, *args, **kwargs):
         """
             Выпоняет действия, необходимые после получения отчета:
             обновляет данные buffer
         """
-        where = {'id': kwargs.pop('id', None)}
+        where = {'id': kwargs.get('id')}
+
         msg_out = self.get_message_out(
             self.tempate_msg_out,
             {
-                "code_answer": kwargs.pop('status'),
-                "msg_answer": kwargs.pop('message')
+                "code_answer": kwargs.get('status'),
+                "msg_answer": kwargs.get('message')
             }
         )
-        kwargs.update({
-            'state': 'F',
-            'time_out': datetime.now().strftime("%Y%m%d%I%M%S"),
-            'message_out': msg_out
-        })
-        self.update_buffer(where, **kwargs)
+        updated_fields = {
+            'state': 'F' if kwargs.get('status') == '0' else 'E',
+            'time_out': timezone.now().strftime("%Y%m%d%I%M%S"),
+            'message_out': msg_out,
+            'data': kwargs.get('data')
+        }
+        self.update_buffer(where, **updated_fields)
         return u'Строки с условием {0} успешно обновлены'.format(where)
 
     def update_buffer(self, where, **kwargs):
@@ -59,10 +61,10 @@ class KmClient(MysqlDBSource):
             values=kwargs
         )
 
-    def get_message_out(self, template_name, context_data):
+    def get_message_out(self, template, context_data):
         """
             Возвращает данные  по шаблону
             :param template_name: имя шаблона
             :param context: контекст
         """
-        return Template(template_name).render(Context(context_data))
+        return Template(template).render(Context(context_data))

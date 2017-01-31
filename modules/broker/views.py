@@ -26,10 +26,9 @@ class SourceFunctions(View):
         """
         source = get_object_or_404(Source, id=source_id)
         cls = get_cls_module(source.source)
-        lst_methods = cls.all_callbacks if type_methods == 'callback' \
-            else cls.all_signals
-        func_names = [f.func_name for f in lst_methods]
-        return HttpResponse(json.dumps({type_methods: func_names}))
+        lst_methods = cls.get_all_callbacks() if type_methods == 'callback' \
+            else cls.get_all_signals()
+        return HttpResponse(json.dumps({type_methods: lst_methods}))
 
 get_source_functions = SourceFunctions.as_view()
 

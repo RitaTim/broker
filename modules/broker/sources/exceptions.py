@@ -20,3 +20,10 @@ class WsdlConnectError(Exception):
         Возникает при ошибке подключения к wsdl серверу
     """
     pass
+
+
+class WsdlAnswerException(Exception):
+    """
+        Исключение при ответе от wsdl сервера
+    """
+    pass
