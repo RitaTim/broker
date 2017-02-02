@@ -51,13 +51,14 @@ class OneSWsdl(Wsdl):
                 )
             ).get('return')
             # Кидаем сигнал о том, что отчет получен
+            wsdl_message = unicode(getattr(wsdl_return, '_Message', ''))
             self.received_report_equipment_repair(
                 id=kwargs['id'],
                 status=str(getattr(wsdl_return, '_Status', 0)),
                 data=getattr(wsdl_return, 'Data', ''),
-                message=unicode(getattr(wsdl_return, '_Message', ''))
+                message=wsdl_message
             )
-            return wsdl_return
+            return wsdl_message
         except WebFault as error:
             # Реагируем только на exceptions, по которым нужно перезапускать
             # и генерируем WsdlAnswerException для них
