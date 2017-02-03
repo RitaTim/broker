@@ -136,6 +136,15 @@ class MysqlQuery(SqlQuery):
 class MysqlDBSource(DataBaseSourse):
     """
         Класс mysql источника
+
+        В init_params источников необходимо указывать параметры:
+        {
+            "host": <host сервера>,
+            "db": <имя БД>,
+            "user": <имя пользователя>,
+            "passwd": <пароль>,
+            "charset": <кодировку>,
+        }
     """
     query = MysqlQuery()
 

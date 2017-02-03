@@ -145,6 +145,9 @@ class SqlQuery(object):
 class DataBaseSourse(Source):
     """
         Класс, описывающий тип источника "База данных"
+
+        В init_params источников данного типа необходимо указывать
+        параметры подключения к конкретной бд
     """
     type_source = "db"
     query = SqlQuery()

@@ -9,6 +9,14 @@ from broker.sources.exceptions import WsdlConnectError
 class Wsdl(Source):
     """
         Класс источника Wsdl
+
+        В init_params источников данного типа необходимо указывать
+        параметры подключения:
+        {
+            "url": <url к серверу wsdl>,
+            "username": <имя пользователя>,
+            "password": <пароль>
+        }
     """
     type_source = "wsdl"
     wsdl_client = None
