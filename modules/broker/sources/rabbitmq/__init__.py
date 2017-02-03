@@ -14,7 +14,11 @@ class RabbitMQ(Source):
             'broker_url': <BROKER_URL проекта>
         }
     """
-    type_source = "rabbit_mq"
+    type_source = "rabbitmq"
+    celery_settings = {
+        "queue": "default",
+        "serializer": "json",
+    }
 
     def __init__(self, *args, **kwargs):
         super(RabbitMQ, self).__init__(*args, **kwargs)

@@ -17,6 +17,16 @@ class BaseClassMeta(type):
 
         callback_params = dict()
         signals = []
+
+        # Добавляем сигналы и обработчики родителей
+        parent_callbacks = []
+        parent_signals = []
+        for base_cls in bases:
+            if hasattr(base_cls, 'get_all_callbacks'):
+                parent_callbacks = base_cls.get_all_callbacks()
+            if hasattr(base_cls, 'get_all_signals'):
+                parent_signals = base_cls.get_all_signals()
+
         for name_attr, attr in attrs.items():
             # проверяем только атрибуты типа функции
             if not isinstance(attr, FunctionType):
@@ -43,8 +53,8 @@ class BaseClassMeta(type):
                 signals.append(name_attr)
 
         new_cls.__callback_params = callback_params
-        new_cls.__all_callbacks = callback_params.keys()
-        new_cls.__all_signals = signals
+        new_cls.__all_callbacks = parent_callbacks + callback_params.keys()
+        new_cls.__all_signals = parent_signals + signals
         return new_cls
 
     def get_all_callbacks(cls):

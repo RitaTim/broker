@@ -92,6 +92,8 @@ def receive_signal(self, callback_log_id, *args, **kwargs):
     name_source = callback_log.destination.source
     destination_instance = get_cls_module(name_source)()
     callback = getattr(destination_instance, callback_log.callback)
+    # Передаем в обработчик параметры options, заданные в Правиле
+    kwargs.update(callback_log.params.get('options', {}))
     if callable(callback):
         return callback(*args, **kwargs)
 
