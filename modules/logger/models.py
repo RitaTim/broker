@@ -21,9 +21,9 @@ class SignalLogAbstract(models.Model):
     source = models.ForeignKey(Source, verbose_name=u"Источник",
                                related_name="%(app_label)s_%(class)s_source")
     signature = models.CharField(u"Сигнатура", max_length=128)
-    args_signal = JSONField(null=True, blank=True)
-    kwargs_signal = JSONField(null=True, blank=True)
-    params = JSONField(null=True, blank=True)
+    args_signal = JSONField(u"Args сигнала", null=True, blank=True)
+    kwargs_signal = JSONField(u"Kwargs сигнала", null=True, blank=True)
+    params = JSONField(u"Параметры вызова обработчика", null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -53,10 +53,8 @@ class CallbackLogAbstract(models.Model):
             destination - приемник сигнала
             callback - название обработчика сигнала
             params - параметры (из rule), с которыми будет вызываться callback
-                Внутри params также может передаваться options - дополнительные
-                необязательные параметры, которые могут использоваться
-                в самом обработчике. Например:
-                {"options": {"queue": "emails_validation"}}
+            additional_params - параметры, которые передаются в сам callback
+                Например:{"queue": "emails_validation"}
             state - состояние таска обработчика:
                 pending - в ожидании
                 process - выполняется
@@ -87,13 +85,17 @@ class CallbackLogAbstract(models.Model):
         related_name="%(app_label)s_%(class)s_destination"
     )
     callback = models.CharField(u"Обработчик", max_length=128)
-    params = JSONField(null=True, blank=True)
+    params = JSONField(u"Параметры вызова обработчика", null=True, blank=True)
+    additional_params = JSONField(u"Дополнительные параметры", null=True,
+                                  blank=True)
     state = models.CharField(u"Состояние", max_length=128,
                              choices=STATE_CHOICES, default='pending')
     message = models.TextField(u"Сообщение", null=True, blank=True)
-    result = JSONField(null=True, blank=True)
-    callback_args = JSONField(null=True, blank=True)
-    callback_kwargs = JSONField(null=True, blank=True)
+    result = JSONField(u"Результат обработчика", null=True, blank=True)
+    callback_args = JSONField(u"Args декоратора callback", null=True,
+                              blank=True)
+    callback_kwargs = JSONField(u"Kwargs декоратора callback", null=True,
+                                blank=True)
     task_uuid = models.UUIDField(u"Uuid таска", null=True, blank=True)
     check_task_uuid = models.UUIDField(u"Uuid таска отмены", null=True,
                                        blank=True)

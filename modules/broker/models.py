@@ -13,7 +13,7 @@ class Source(models.Model):
     source = models.CharField(u"Источника", max_length=128)
     type_source = models.CharField(u"Тип источника", max_length=128,
                                    null=True, blank=True)
-    init_params = JSONField(null=True, blank=True)
+    init_params = JSONField(u"Параметры источника", null=True, blank=True)
 
     def __unicode__(self):
         return self.source
@@ -37,7 +37,9 @@ class Rule(models.Model):
                                     related_name="rules_destination")
     signal = models.CharField(u"Сигнал", max_length=128, blank=True)
     callback = models.CharField(u"Обработчик", max_length=128, blank=True)
-    params = JSONField(null=True, blank=True)
+    params = JSONField(u"Параметры вызова обработчика", null=True, blank=True)
+    additional_params = JSONField(u"Дополнительные параметры", null=True,
+                                  blank=True)
 
     class Meta:
         unique_together = ("source", "destination", "signal", "callback")

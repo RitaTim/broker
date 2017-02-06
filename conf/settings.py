@@ -122,6 +122,7 @@ CELERY_QUEUES = (
     Queue('receiver', exchange=default_exchange, routing_key='receiver'),
     Queue('logger', exchange=default_exchange, routing_key='logger'),
     Queue('control', exchange=default_exchange, routing_key='control'),
+    Queue('rabbit', exchange=default_exchange, routing_key='rabbit'),
 )
 
 BROKER_URL = None
