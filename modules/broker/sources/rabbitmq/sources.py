@@ -34,7 +34,7 @@ class MailerRabbitMQ(RabbitMQ):
         """
             Вызвать таск на блокировку домена
         """
-        self._apply_async(
+        self.apply_async(
             'update_users_status',
             ignore_result=True,
             additional_params=kwargs.pop('additional_params', None),

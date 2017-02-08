@@ -6,7 +6,7 @@
 Он позволяет вызаимодействовать с внешними приложениями через celery
 
 Для вызова таска во внешнем приложении, необхдодимо вызвать метод
-_apply_async и передать ему следующие параметры:
+apply_async и передать ему следующие параметры:
     useless_task: string - имя таска
     ignore_result: bool - True, если нужно игнорировать результат тасков
     additional_params: dict - дополнительные параметры из Правила
@@ -22,8 +22,8 @@ _apply_async и передать ему следующие параметры:
         @callback()
         def callback(self, *args, **kwargs):
             # Вызываем таск useless_task во внешнем приложении,
-            # не возвращая результат
-            return self._apply_async(
+            # не возвращая результат (не дожидатемся его завершения)
+            return self.apply_async(
                 'useless_task',
                 ignore_result=True,
                 additional_params=kwargs.pop('additional_params', None),
@@ -31,14 +31,24 @@ _apply_async и передать ему следующие параметры:
                 task_kwargs=kwargs
             )
 
-При этом у источника TestRabbitMQ в init_params должны быть указаны параметры {
+При этом у источника TestRabbitMQ в init_params должны быть указаны параметры
+{
     "main": "magic", # имя приложения
-    "broker": "amqp://angel:angel@localhost:5672/magic", # BROKER_URL приложения
-    "backend": "amqp" # backend, для хранения результата (если не нужно
-                      # сохранять результат тасков, можно не указывать)
+    "broker": "amqp://user:pass@host:port/vhost", # BROKER_URL приложения
+    "backend": "amqp" # CELERY_RESULT_BACKEND для хранения результата (если не
+     надо сохранять результат, можно не задавать)
+    "expires": 1800 # CELERY_TASK_RESULT_EXPIRES продолжительность хранения
+    результата выполнения таска
 }
-"""
 
+Для получения результата от внешнего таска в callback'е, необходимо указать
+backend и expires, заданный во внешнем приложении (CELERY_RESULT_BACKEND и
+CELERY_TASK_RESULT_EXPIRES)
+
+В качестве CELERY_TASK_RESULT_EXPIRES уместно использовать amqp или redis,
+локальная SQLite не подойдет
+
+"""
 
 
 from copy import deepcopy
@@ -78,8 +88,8 @@ class RabbitMQ(Source):
             result.update(custom_celery_settings)
         return result
 
-    def _apply_async(self, task_signature, ignore_result=False,
-                     additional_params=None, task_args=None, task_kwargs=None):
+    def apply_async(self, task_signature, ignore_result=False,
+                    additional_params=None, task_args=None, task_kwargs=None):
         """
         Вызывает таск на стороне RabbitMQ источника
         :param task_signature: string сигнатура вызова таска
