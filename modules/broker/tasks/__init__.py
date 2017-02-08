@@ -99,9 +99,12 @@ def receive_signal(self, callback_log_id, *args, **kwargs):
     destination_instance = get_cls_module(name_source)()
     callback = getattr(destination_instance, callback_log.callback)
     if callable(callback):
-        return callback(additional_params=callback_log.additional_params,
-                        *args, **kwargs)
-
+        # вспомогательные параметры из правила "additional_params" передаем в
+        # kwargs'ах; их обязательно надо извлечь из kwargs'ов, перед передачей
+        # внешнему таску (см. реализацию метода apply_task)
+        if callback_log.additional_params:
+            kwargs['additional_params'] = callback_log.additional_params
+        return callback(*args, **kwargs)
     task_logger.warning(u'Обработчик "{0}" не является методом'.format(
         callback_log.callback))
 

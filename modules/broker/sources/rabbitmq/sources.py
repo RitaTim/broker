@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from celery import signature
-
 from broker.sources.rabbitmq import RabbitMQ
 from broker.decorators.decorators import callback, signal
 
@@ -32,14 +30,16 @@ class MailerRabbitMQ(RabbitMQ):
         pass
 
     @callback()
-    def update_user_status(self, additional_params=None, **kwargs):
+    def update_user_status(self, *args, **kwargs):
         """
             Вызвать таск на блокировку домена
         """
-        signature_task = signature('update_users_status', app=self.app)
-        signature_task.apply_async(
-            kwargs=kwargs,
-            **self.get_default_celery_settings(additional_params)
+        self._apply_async(
+            'update_users_status',
+            ignore_result=True,
+            additional_params=kwargs.pop('additional_params', None),
+            task_args=args,
+            task_kwargs=kwargs
         )
 
 
